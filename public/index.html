@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maple Speak · Practice English Out Loud</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Nunito+Sans:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="leaf">🍁</span>
+          <div>
+            <h1>Maple Speak</h1>
+            <p class="tagline">Talk with Maple to practice your English.</p>
+          </div>
+        </div>
+        <button id="settingsToggle" class="icon-btn" aria-label="Settings" title="Settings">
+          ⚙️
+        </button>
+      </header>
+
+      <section id="settings" class="settings" hidden>
+        <div class="setting">
+          <label for="level">Your level</label>
+          <select id="level">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate" selected>Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+        <div class="setting">
+          <label for="style">Partner style</label>
+          <select id="style">
+            <option value="friendly" selected>Friendly &amp; adaptive</option>
+            <option value="casual">Casual native speaker</option>
+            <option value="tutor">Patient tutor</option>
+          </select>
+        </div>
+        <div class="setting">
+          <label for="corrections">Corrections</label>
+          <select id="corrections">
+            <option value="gentle" selected>Gentle, conversational</option>
+            <option value="detailed">Detailed coaching</option>
+            <option value="none">No corrections</option>
+          </select>
+        </div>
+        <div class="setting">
+          <label for="scenario">Scenario (optional)</label>
+          <select id="scenario">
+            <option value="">Free chat</option>
+            <option value="Ordering food and drinks at a cozy café">Café / restaurant</option>
+            <option value="A friendly job interview for a role the learner is interested in">Job interview</option>
+            <option value="Checking in at a hotel and asking about the area">Travel / hotel</option>
+            <option value="Casual small talk between two friends catching up">Catching up with a friend</option>
+            <option value="Shopping for clothes and asking a shop assistant for help">Shopping</option>
+            <option value="Talking to a doctor about how you feel">At the doctor</option>
+          </select>
+        </div>
+        <div class="setting setting--toggle">
+          <label for="autoSpeak">Read Maple's replies aloud</label>
+          <input type="checkbox" id="autoSpeak" checked />
+        </div>
+        <div class="setting setting--toggle">
+          <label for="autoListen">Auto-listen after Maple speaks</label>
+          <input type="checkbox" id="autoListen" checked />
+        </div>
+        <div class="setting">
+          <label for="voiceSelect">Maple's voice</label>
+          <select id="voiceSelect"></select>
+        </div>
+      </section>
+
+      <main id="chat" class="chat" aria-live="polite"></main>
+
+      <div id="interim" class="interim" hidden></div>
+
+      <footer class="controls">
+        <button id="textToggle" class="icon-btn" title="Type instead" aria-label="Type a message">
+          ⌨️
+        </button>
+        <button id="micBtn" class="mic" aria-label="Hold to speak">
+          <span class="mic-icon">🎙️</span>
+          <span class="mic-label">Tap to speak</span>
+        </button>
+        <button id="resetBtn" class="icon-btn" title="Start over" aria-label="Start over">
+          ↺
+        </button>
+      </footer>
+
+      <form id="textForm" class="text-form" hidden>
+        <input
+          id="textInput"
+          type="text"
+          autocomplete="off"
+          placeholder="Type your message to Maple…"
+        />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+
+    <div id="unsupported" class="unsupported" hidden>
+      <p>
+        Your browser doesn't support speech recognition. You can still type to
+        chat with Maple, but for the full speaking experience please use
+        <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on desktop or Android.
+      </p>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
