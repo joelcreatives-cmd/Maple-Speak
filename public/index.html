@@ -90,6 +90,9 @@
           <span class="mic-icon">🎙️</span>
           <span class="mic-label">Tap to speak</span>
         </button>
+        <button id="reviewBtn" class="icon-btn" title="Review this session" aria-label="Review this session">
+          📊
+        </button>
         <button id="resetBtn" class="icon-btn" title="Start over" aria-label="Start over">
           ↺
         </button>
@@ -104,6 +107,21 @@
         />
         <button type="submit">Send</button>
       </form>
+    </div>
+
+    <!-- End-of-session review -->
+    <div id="reviewOverlay" class="modal-overlay" hidden>
+      <div class="modal-card">
+        <button id="reviewClose" class="modal-close" aria-label="Close">✕</button>
+        <span class="leaf big">🍁</span>
+        <h2>Your speaking session</h2>
+        <div id="reviewStats" class="review-stats"></div>
+        <div id="reviewBody" class="review-body"></div>
+        <div class="review-actions">
+          <button id="reviewKeepGoing" class="setup-btn">Keep talking</button>
+          <button id="reviewNew" class="ghost-btn">Start a new session</button>
+        </div>
+      </div>
     </div>
 
     <!-- One-time setup: load the in-browser AI model -->

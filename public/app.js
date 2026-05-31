@@ -18,6 +18,15 @@ const textForm = $("textForm");
 const textInput = $("textInput");
 const voiceSelect = $("voiceSelect");
 const controlsEl = document.querySelector(".controls");
+const reviewBtn = $("reviewBtn");
+
+// Review modal
+const reviewOverlay = $("reviewOverlay");
+const reviewClose = $("reviewClose");
+const reviewStats = $("reviewStats");
+const reviewBody = $("reviewBody");
+const reviewKeepGoing = $("reviewKeepGoing");
+const reviewNew = $("reviewNew");
 
 // Setup / loading elements
 const setupEl = $("setup");
@@ -61,6 +70,28 @@ let engine = null;
 let loadedModelId = null;
 let supportsF16 = false;
 
+// Words the speech recognizer was unsure about, gathered across the session.
+// These are good pronunciation-practice candidates.
+let trickyWords = new Map(); // word -> count
+
+// A few friendly openers shown on the welcome screen.
+const STARTERS = [
+  "Tell me about your day so far.",
+  "What did you have for lunch?",
+  "What are your plans for the weekend?",
+  "Describe your favorite place to relax.",
+  "What's a movie or show you enjoyed recently?",
+  "If you could travel anywhere, where would you go?",
+];
+
+// Very common English words — used to surface less-common vocabulary the
+// learner actually produced, for the session review.
+const COMMON_WORDS = new Set(
+  ("the be to of and a in that have i it for not on with he as you do at this but his by from they we say her she or an will my one all would there their what so up out if about who get which go me when make can like time no just him know take people into year your good some could them see other than then now look only come its over think also back after use two how our work first well way even new want because any these give day most us is are was were am been being has had did doing does i'm it's that's don't you're we're they're can't won't isn't really very okay yeah hi hello yes thanks thank please sorry hey oh well i've i'll i'd he's she's").split(
+    /\s+/,
+  ),
+);
+
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 const synth = window.speechSynthesis;
@@ -97,6 +128,47 @@ function saveSettings() {
 
 let pendingVoiceURI = null;
 let pendingModelId = null;
+
+// ---- Conversation persistence (resume after refresh) -----------------------
+
+const SESSION_KEY = "maple-speak-session";
+
+function saveSession() {
+  try {
+    localStorage.setItem(
+      SESSION_KEY,
+      JSON.stringify({
+        messages,
+        tricky: [...trickyWords.entries()],
+        savedAt: Date.now(),
+      }),
+    );
+  } catch {
+    /* storage full or unavailable — non-fatal */
+  }
+}
+
+function restoreSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.messages) || data.messages.length === 0) return false;
+    // Only resume recent sessions (within 24h) so it feels fresh otherwise.
+    if (data.savedAt && Date.now() - data.savedAt > 24 * 60 * 60 * 1000) return false;
+    messages = data.messages;
+    trickyWords = new Map(data.tricky || []);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function clearSession() {
+  messages = [];
+  trickyWords = new Map();
+  localStorage.removeItem(SESSION_KEY);
+}
 
 // ---- System prompt (built in the browser) ----------------------------------
 
@@ -210,7 +282,11 @@ async function loadModel() {
 function finishSetup() {
   setupEl.hidden = true;
   controlsEl.hidden = false;
-  showWelcome();
+  if (restoreSession()) {
+    renderRestored();
+  } else {
+    showWelcome();
+  }
 }
 
 // ---- Voices ----------------------------------------------------------------
@@ -286,7 +362,50 @@ function showWelcome() {
       <h2>Hi, I'm Maple 🍁</h2>
       <p>Tap the microphone and just start talking — about your day, your plans,
       anything. I'll chat back and gently help your English along the way.</p>
+      <p style="margin-top:14px;font-size:13px">Not sure what to say? Pick one:</p>
+      <div class="starters" id="starters"></div>
     </div>`;
+
+  // Show three random conversation starters.
+  const pool = [...STARTERS].sort(() => Math.random() - 0.5).slice(0, 3);
+  const wrap = $("starters");
+  for (const text of pool) {
+    const btn = document.createElement("button");
+    btn.className = "starter";
+    btn.textContent = text;
+    btn.onclick = () => handleUserUtterance(text);
+    wrap.appendChild(btn);
+  }
+}
+
+// Re-render a conversation restored from a previous session.
+function renderRestored() {
+  chatEl.innerHTML = "";
+  for (const m of messages) {
+    if (m.role === "user") {
+      addMessage("user", m.content);
+    } else {
+      const el = document.createElement("div");
+      el.className = "msg maple";
+      chatEl.appendChild(el);
+      renderMapleMessage(el, m.content);
+    }
+  }
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+// Track words the recognizer was unsure about (low confidence) — these become
+// pronunciation-practice suggestions in the session review.
+function notePronunciation(transcript, confidence) {
+  if (confidence == null || confidence >= 0.75) return;
+  const words = transcript
+    .toLowerCase()
+    .replace(/[^a-z'\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 3 && !COMMON_WORDS.has(w));
+  for (const w of words) {
+    trickyWords.set(w, (trickyWords.get(w) || 0) + 1);
+  }
 }
 
 function addMessage(role, text) {
@@ -365,6 +484,7 @@ async function sendToMaple() {
     if (!fullText.trim()) throw new Error("Empty response");
 
     messages.push({ role: "assistant", content: fullText });
+    saveSession();
     renderMapleMessage(typingEl, fullText);
 
     const { spoken } = splitReply(fullText);
@@ -389,6 +509,7 @@ function handleUserUtterance(text) {
   if (!clean || busy) return;
   addMessage("user", clean);
   messages.push({ role: "user", content: clean });
+  saveSession();
   sendToMaple();
 }
 
@@ -422,9 +543,15 @@ function setupRecognition() {
     let interim = "";
     finalText = "";
     for (let i = 0; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) finalText += t;
-      else interim += t;
+      const result = e.results[i][0];
+      const t = result.transcript;
+      if (e.results[i].isFinal) {
+        finalText += t;
+        // Words the engine was unsure about are good pronunciation targets.
+        notePronunciation(t, result.confidence);
+      } else {
+        interim += t;
+      }
     }
     interimEl.textContent = (finalText + " " + interim).trim() || "…";
   };
@@ -456,6 +583,144 @@ function stopListening() {
   if (recognition && listening) recognition.stop();
 }
 
+// ---- Session review --------------------------------------------------------
+
+function userTurns() {
+  return messages.filter((m) => m.role === "user");
+}
+
+// Count words and surface the less-common vocabulary the learner used.
+function analyzeVocabulary() {
+  const turns = userTurns();
+  const allWords = turns
+    .map((m) => m.content.toLowerCase())
+    .join(" ")
+    .replace(/[^a-z'\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  const richSet = new Set(
+    allWords.filter((w) => w.length > 4 && !COMMON_WORDS.has(w)),
+  );
+
+  return {
+    turnCount: turns.length,
+    wordCount: allWords.length,
+    richWords: [...richSet].slice(0, 12),
+  };
+}
+
+function statBlock(num, lbl) {
+  return `<div class="stat"><div class="num">${num}</div><div class="lbl">${lbl}</div></div>`;
+}
+
+async function openReview() {
+  if (busy) return;
+  stopListening();
+  synth?.cancel();
+
+  const turns = userTurns();
+  if (turns.length === 0) {
+    reviewStats.innerHTML = "";
+    reviewBody.innerHTML = `<p class="review-empty">You haven't spoken yet this
+      session. Tap the microphone and chat with Maple for a bit, then come back
+      to see your review.</p>`;
+    reviewOverlay.hidden = false;
+    return;
+  }
+
+  const { turnCount, wordCount, richWords } = analyzeVocabulary();
+  const avg = Math.round(wordCount / Math.max(turnCount, 1));
+
+  reviewStats.innerHTML =
+    statBlock(turnCount, "times you spoke") +
+    statBlock(wordCount, "words spoken") +
+    statBlock(avg, "avg words / turn");
+
+  // Build the static sections first (vocab + pronunciation), then ask Maple
+  // for a short personalized coaching note.
+  let html = "";
+
+  if (richWords.length) {
+    html += `<div class="review-section"><h3>Nice vocabulary you used</h3>
+      <div class="chip-row">${richWords
+        .map((w) => `<span class="chip">${w}</span>`)
+        .join("")}</div></div>`;
+  }
+
+  const tricky = [...trickyWords.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([w]) => w)
+    .slice(0, 8);
+  if (tricky.length) {
+    html += `<div class="review-section"><h3>Words to practice saying clearly</h3>
+      <div class="chip-row">${tricky
+        .map((w) => `<span class="chip warn">${w}</span>`)
+        .join("")}</div>
+      <p class="review-empty" style="margin-top:8px">Tap a word to hear it, then
+      say it back a few times.</p></div>`;
+  }
+
+  html += `<div class="review-section"><h3>Maple's note for you</h3>
+    <div class="review-coach" id="coachNote"><span class="coach-spinner"></span>Thinking about your session…</div></div>`;
+
+  reviewBody.innerHTML = html;
+  reviewOverlay.hidden = false;
+
+  // Make pronunciation chips speak when tapped.
+  reviewBody.querySelectorAll(".chip.warn").forEach((chip) => {
+    chip.style.cursor = "pointer";
+    chip.onclick = () => speakWord(chip.textContent);
+  });
+
+  // Generate the coaching note with the in-browser model.
+  const coachEl = $("coachNote");
+  try {
+    const note = await generateCoachNote();
+    coachEl.textContent = note;
+  } catch {
+    coachEl.textContent =
+      "Great work practicing today! Keep having conversations like this — every chat makes your English more natural.";
+  }
+}
+
+// Speak a single word slowly and clearly for pronunciation practice.
+function speakWord(word) {
+  if (!synth) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(word);
+  const v = getSelectedVoice();
+  if (v) {
+    u.voice = v;
+    u.lang = v.lang;
+  }
+  u.rate = 0.75;
+  synth.speak(u);
+}
+
+async function generateCoachNote() {
+  if (!engine) throw new Error("no engine");
+  const transcript = userTurns()
+    .map((m) => `- ${m.content}`)
+    .join("\n");
+
+  const prompt = `You are Maple, a warm English-speaking coach. Below are things a learner said out loud during a practice conversation. Write a SHORT, encouraging review (3 to 4 sentences) for them. Mention one specific thing they did well, and one simple, friendly suggestion to improve. Speak directly to the learner ("you"). Do not use markdown, bullet points, or emoji.
+
+What the learner said:
+${transcript}`;
+
+  const res = await engine.chat.completions.create({
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.6,
+    max_tokens: 220,
+  });
+  return (res.choices?.[0]?.message?.content || "").trim();
+}
+
+function closeReview() {
+  reviewOverlay.hidden = true;
+}
+
 // ---- UI wiring -------------------------------------------------------------
 
 loadBtn.addEventListener("click", loadModel);
@@ -470,10 +735,27 @@ micBtn.addEventListener("click", () => {
 });
 
 resetBtn.addEventListener("click", () => {
+  if (messages.length && !confirm("Start a new session? This clears the current chat.")) {
+    return;
+  }
   synth?.cancel();
   stopListening();
-  messages = [];
+  clearSession();
   showWelcome();
+});
+
+reviewBtn.addEventListener("click", openReview);
+reviewClose.addEventListener("click", closeReview);
+reviewKeepGoing.addEventListener("click", closeReview);
+reviewNew.addEventListener("click", () => {
+  closeReview();
+  synth?.cancel();
+  stopListening();
+  clearSession();
+  showWelcome();
+});
+reviewOverlay.addEventListener("click", (e) => {
+  if (e.target === reviewOverlay) closeReview();
 });
 
 settingsToggle.addEventListener("click", () => {

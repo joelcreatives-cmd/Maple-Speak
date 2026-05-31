@@ -29,6 +29,12 @@ completely:
   notes, or none.
 - 🎚️ **Adapts to you** — level (beginner / intermediate / advanced) and partner style.
 - 🎭 **Scenarios** — café, job interview, travel, shopping, doctor, or free chat.
+- 💬 **Conversation starters** — stuck for words? Tap a suggested opener to begin.
+- 📊 **Session review** — tap the chart button for a recap: how much you spoke,
+  nice vocabulary you used, words to practice saying clearly (tap to hear them),
+  and a short personalized note from Maple.
+- 💾 **Picks up where you left off** — your conversation is saved in your browser,
+  so a refresh won't lose it (cleared with "Start over").
 - ⌨️ **Type fallback** if your browser has no speech support.
 
 ## Requirements
