@@ -30,11 +30,17 @@ completely:
 - 🎚️ **Adapts to you** — level (beginner / intermediate / advanced) and partner style.
 - 🎭 **Scenarios** — café, job interview, travel, shopping, doctor, or free chat.
 - 💬 **Conversation starters** — stuck for words? Tap a suggested opener to begin.
+- 💡 **Explain simply** — on any of Maple's replies, tap "Explain simply" to get
+  the same thing in easier English, with hard words defined.
+- 🐢 **Adjustable speaking speed** — slow Maple's voice down or speed it up.
+- 🔥 **Daily streak** — a gentle nudge that counts the days you practice in a row.
 - 📊 **Session review** — tap the chart button for a recap: how much you spoke,
   nice vocabulary you used, words to practice saying clearly (tap to hear them),
   and a short personalized note from Maple.
 - 💾 **Picks up where you left off** — your conversation is saved in your browser,
   so a refresh won't lose it (cleared with "Start over").
+- 📲 **Installable & offline** — add it to your home screen / desktop and, once the
+  model is downloaded, use it with no internet at all.
 - ⌨️ **Type fallback** if your browser has no speech support.
 
 ## Requirements

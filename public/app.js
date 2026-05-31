@@ -17,8 +17,12 @@ const textToggle = $("textToggle");
 const textForm = $("textForm");
 const textInput = $("textInput");
 const voiceSelect = $("voiceSelect");
+const rateSlider = $("rate");
+const rateVal = $("rateVal");
 const controlsEl = document.querySelector(".controls");
 const reviewBtn = $("reviewBtn");
+const streakBar = $("streakBar");
+const streakText = $("streakText");
 
 // Review modal
 const reviewOverlay = $("reviewOverlay");
@@ -111,6 +115,10 @@ function loadSettings() {
     }
     if (saved.voiceURI) pendingVoiceURI = saved.voiceURI;
     if (saved.modelId) pendingModelId = saved.modelId;
+    if (saved.rate) {
+      rateSlider.value = saved.rate;
+      updateRateLabel();
+    }
   } catch {
     /* ignore */
   }
@@ -123,7 +131,13 @@ function saveSettings() {
   }
   data.voiceURI = voiceSelect.value;
   data.modelId = modelSelect.value;
+  data.rate = rateSlider.value;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
+}
+
+function updateRateLabel() {
+  const r = parseFloat(rateSlider.value);
+  rateVal.textContent = r < 0.85 ? "Slower" : r > 1.05 ? "Faster" : "Normal";
 }
 
 let pendingVoiceURI = null;
@@ -168,6 +182,67 @@ function clearSession() {
   messages = [];
   trickyWords = new Map();
   localStorage.removeItem(SESSION_KEY);
+}
+
+// ---- Daily practice streak (motivation) ------------------------------------
+
+const STREAK_KEY = "maple-speak-streak";
+
+function todayStamp() {
+  // Local-date YYYY-MM-DD so streaks roll over at the user's midnight.
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+function dayNumber(stamp) {
+  const [y, m, d] = stamp.split("-").map(Number);
+  return Math.floor(Date.UTC(y, m - 1, d) / 86400000);
+}
+
+function readStreak() {
+  try {
+    return JSON.parse(localStorage.getItem(STREAK_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+// Call when the learner actually speaks/types a turn — that counts as practice.
+function markPracticedToday() {
+  const today = todayStamp();
+  const prev = readStreak();
+  if (prev && prev.last === today) return; // already counted today
+
+  let count = 1;
+  if (prev) {
+    const gap = dayNumber(today) - dayNumber(prev.last);
+    if (gap === 1) count = (prev.count || 0) + 1; // consecutive day
+    else if (gap === 0) count = prev.count || 1; // same day (shouldn't hit)
+    // gap > 1 → streak broken, restart at 1
+  }
+  localStorage.setItem(STREAK_KEY, JSON.stringify({ last: today, count }));
+  renderStreak();
+}
+
+function renderStreak() {
+  const s = readStreak();
+  if (!s || !s.count) {
+    streakBar.hidden = true;
+    return;
+  }
+  const today = todayStamp();
+  const gap = dayNumber(today) - dayNumber(s.last);
+  if (gap > 1) {
+    // Streak lapsed — hide rather than show a stale number.
+    streakBar.hidden = true;
+    return;
+  }
+  const days = s.count;
+  streakText.textContent =
+    days === 1
+      ? "🔥 Day 1 — nice, you started! Come back tomorrow to build a streak."
+      : `🔥 ${days}-day streak! Keep it going.`;
+  streakBar.hidden = false;
 }
 
 // ---- System prompt (built in the browser) ----------------------------------
@@ -282,6 +357,7 @@ async function loadModel() {
 function finishSetup() {
   setupEl.hidden = true;
   controlsEl.hidden = false;
+  renderStreak();
   if (restoreSession()) {
     renderRestored();
   } else {
@@ -344,7 +420,7 @@ function speak(text, onEnd) {
     utter.voice = voice;
     utter.lang = voice.lang;
   }
-  utter.rate = controls.level.value === "beginner" ? 0.9 : 1.0;
+  utter.rate = parseFloat(rateSlider.value) || 1.0;
   utter.onend = () => onEnd?.();
   utter.onerror = () => onEnd?.();
   synth.speak(utter);
@@ -437,11 +513,55 @@ function renderMapleMessage(el, fullText) {
     fb.textContent = `📝 ${feedback}`;
     el.appendChild(fb);
   }
+  const actions = document.createElement("div");
+  actions.className = "msg-actions";
+
   const replay = document.createElement("button");
   replay.className = "speak-again";
   replay.innerHTML = "🔊 Hear again";
   replay.onclick = () => speak(spoken || fullText);
-  el.appendChild(replay);
+  actions.appendChild(replay);
+
+  const explain = document.createElement("button");
+  explain.className = "speak-again";
+  explain.innerHTML = "💡 Explain simply";
+  explain.onclick = () => explainMessage(spoken || fullText, el);
+  actions.appendChild(explain);
+
+  el.appendChild(actions);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+// Ask the model to restate its message in very simple English, shown inline.
+async function explainMessage(text, msgEl) {
+  if (!engine || busy) return;
+  // Avoid duplicate panels.
+  if (msgEl.querySelector(".explain-box")) {
+    msgEl.querySelector(".explain-box").scrollIntoView({ block: "nearest" });
+    return;
+  }
+  const box = document.createElement("div");
+  box.className = "explain-box";
+  box.innerHTML = `<span class="coach-spinner"></span>Explaining…`;
+  msgEl.appendChild(box);
+  chatEl.scrollTop = chatEl.scrollHeight;
+
+  try {
+    const res = await engine.chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: `Rewrite this in very simple English (short words, one or two short sentences) so an English learner can understand it. If there is a difficult word, add its meaning in parentheses. Only give the simplified version, nothing else.\n\n"${text}"`,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 160,
+    });
+    const simple = (res.choices?.[0]?.message?.content || "").trim();
+    box.textContent = "💡 " + (simple || "Sorry, I couldn't simplify that one.");
+  } catch {
+    box.textContent = "💡 Sorry, I couldn't simplify that one. Please try again.";
+  }
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
@@ -510,6 +630,7 @@ function handleUserUtterance(text) {
   addMessage("user", clean);
   messages.push({ role: "user", content: clean });
   saveSession();
+  markPracticedToday();
   sendToMaple();
 }
 
@@ -765,6 +886,10 @@ settingsToggle.addEventListener("click", () => {
 for (const el of Object.values(controls)) el.addEventListener("change", saveSettings);
 voiceSelect.addEventListener("change", saveSettings);
 modelSelect.addEventListener("change", saveSettings);
+rateSlider.addEventListener("input", () => {
+  updateRateLabel();
+  saveSettings();
+});
 
 function toggleTextForm(show) {
   textForm.hidden = show === undefined ? !textForm.hidden : !show;
@@ -791,6 +916,14 @@ async function init() {
     return;
   }
   populateModelSelect();
+}
+
+// Register the service worker so the app shell loads offline. Best-effort —
+// failures (e.g. on file://) are harmless and ignored.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
 }
 
 init();

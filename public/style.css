@@ -202,11 +202,16 @@ h1 {
   border-radius: 0 0 18px 6px;
 }
 
+.msg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 8px;
+}
 .msg .speak-again {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  margin-top: 8px;
   font-size: 12px;
   color: var(--maple);
   background: none;
@@ -218,6 +223,38 @@ h1 {
 .msg .speak-again:hover {
   opacity: 1;
   text-decoration: underline;
+}
+
+.explain-box {
+  margin-top: 10px;
+  background: #eef5f1;
+  border: 1px solid #cfe6db;
+  border-radius: 12px;
+  padding: 10px 13px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #235c4c;
+}
+
+/* Daily practice streak banner */
+.streak-bar {
+  align-self: center;
+  background: #fff3df;
+  border: 1px solid #f0d9a8;
+  color: #8a5a1a;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 auto 8px;
+  text-align: center;
+}
+
+/* Speaking-speed range input */
+.setting input[type="range"] {
+  width: 100%;
+  accent-color: var(--maple);
+  cursor: pointer;
 }
 
 .welcome {

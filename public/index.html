@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Maple Speak · Practice English Out Loud (free & private)</title>
+    <meta
+      name="description"
+      content="Practice speaking English out loud with Maple, a friendly AI partner that runs free and private in your browser."
+    />
+    <meta name="theme-color" content="#c2541f" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -76,7 +84,15 @@
           <label for="voiceSelect">Maple's voice</label>
           <select id="voiceSelect"></select>
         </div>
+        <div class="setting">
+          <label for="rate">Speaking speed · <span id="rateVal">Normal</span></label>
+          <input type="range" id="rate" min="0.6" max="1.15" step="0.05" value="1" />
+        </div>
       </section>
+
+      <div id="streakBar" class="streak-bar" hidden>
+        <span id="streakText"></span>
+      </div>
 
       <main id="chat" class="chat" aria-live="polite"></main>
 
