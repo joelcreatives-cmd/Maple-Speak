@@ -1,7 +1,12 @@
-// ---- Maple Speak: voice-based English practice ----------------------------
+// ---- Maple Speak: 100% free, in-browser English practice -------------------
+// The AI model runs entirely in your browser via WebLLM (WebGPU). No server
+// AI, no API key, no account. Speech in/out uses the browser's Web Speech API.
+
+import * as webllm from "https://esm.run/@mlc-ai/web-llm@0.2.79";
 
 const $ = (id) => document.getElementById(id);
 
+// Chat / control elements
 const chatEl = $("chat");
 const micBtn = $("micBtn");
 const interimEl = $("interim");
@@ -12,6 +17,18 @@ const textToggle = $("textToggle");
 const textForm = $("textForm");
 const textInput = $("textInput");
 const voiceSelect = $("voiceSelect");
+const controlsEl = document.querySelector(".controls");
+
+// Setup / loading elements
+const setupEl = $("setup");
+const setupReady = $("setupReady");
+const setupProgress = $("setupProgress");
+const setupError = $("setupError");
+const noWebGPU = $("noWebGPU");
+const modelSelect = $("modelSelect");
+const loadBtn = $("loadBtn");
+const barFill = $("barFill");
+const progressText = $("progressText");
 
 const controls = {
   level: $("level"),
@@ -22,12 +39,27 @@ const controls = {
   autoListen: $("autoListen"),
 };
 
+// Curated small instruct models (verified against the WebLLM prebuilt list).
+// All support a system role. f16 = smaller/faster but needs a GPU with
+// shader-f16; f32 is the wider-compatibility fallback.
+const MODELS = [
+  { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", label: "Llama 3.2 1B — small & fast (recommended)", f16: true },
+  { id: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC", label: "Qwen 2.5 1.5B — small, a bit smarter", f16: true },
+  { id: "Llama-3.2-3B-Instruct-q4f16_1-MLC", label: "Llama 3.2 3B — bigger & smarter (slower)", f16: true },
+  { id: "Llama-3.2-1B-Instruct-q4f32_1-MLC", label: "Llama 3.2 1B (compatibility / older GPUs)", f16: false },
+  { id: "Qwen2.5-1.5B-Instruct-q4f32_1-MLC", label: "Qwen 2.5 1.5B (compatibility / older GPUs)", f16: false },
+];
+
 // ---- State -----------------------------------------------------------------
 
 let messages = []; // { role: 'user' | 'assistant', content }
 let listening = false;
 let busy = false;
 let voices = [];
+
+let engine = null;
+let loadedModelId = null;
+let supportsF16 = false;
 
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -47,6 +79,7 @@ function loadSettings() {
       else el.value = saved[k];
     }
     if (saved.voiceURI) pendingVoiceURI = saved.voiceURI;
+    if (saved.modelId) pendingModelId = saved.modelId;
   } catch {
     /* ignore */
   }
@@ -58,10 +91,127 @@ function saveSettings() {
     data[k] = el.type === "checkbox" ? el.checked : el.value;
   }
   data.voiceURI = voiceSelect.value;
+  data.modelId = modelSelect.value;
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
 }
 
 let pendingVoiceURI = null;
+let pendingModelId = null;
+
+// ---- System prompt (built in the browser) ----------------------------------
+
+const LEVELS = {
+  beginner:
+    "The learner is a BEGINNER. Use simple, common words and short sentences. Avoid idioms and slang. Be very encouraging.",
+  intermediate:
+    "The learner is INTERMEDIATE. Use everyday vocabulary and natural sentence length. You may use common idioms.",
+  advanced:
+    "The learner is ADVANCED. Speak naturally with rich vocabulary and idioms, as you would with a fluent speaker.",
+};
+const STYLES = {
+  friendly: "You are warm, upbeat and adaptive. You keep things easy to follow while staying engaging.",
+  casual: "You talk like a relaxed, real friend, using natural contractions and a conversational pace.",
+  tutor: "You are a patient, gentle tutor. You speak clearly with simple vocabulary and lots of encouragement.",
+};
+const CORRECTIONS = {
+  gentle:
+    "When the learner makes a noticeable mistake, gently weave a short correction into your reply, then continue. Only correct what matters for being understood. Never lecture.",
+  detailed:
+    "After replying conversationally, ALWAYS add a short feedback note at the very end on its own line, in exactly this format:\n📝 Feedback: <one or two friendly tips, or praise if they did well>",
+  none: "Do NOT correct the learner's mistakes. Just have a natural, enjoyable conversation.",
+};
+
+function buildSystemPrompt() {
+  const level = LEVELS[controls.level.value] || LEVELS.intermediate;
+  const style = STYLES[controls.style.value] || STYLES.friendly;
+  const corr = CORRECTIONS[controls.corrections.value] || CORRECTIONS.gentle;
+  const scenario = controls.scenario.value
+    ? `\nTODAY'S SCENARIO: ${controls.scenario.value}. Stay in this scenario and play your role.`
+    : "";
+
+  return `You are "Maple", a friendly conversation partner helping someone practice spoken English. Your reply is read aloud, and the learner answers by speaking.
+
+Keep the learner talking — that is how they improve.
+
+PERSONALITY: ${style}
+LEVEL: ${level}
+CORRECTIONS: ${corr}
+
+RULES:
+- Keep replies SHORT and conversational: 1 to 3 sentences.
+- End most turns with a friendly, open question.
+- Sound like a real person speaking. Use plain spoken sentences with no markdown, lists, code, or emoji (the feedback note is the only exception).
+- Never say you are an AI. You are just Maple.
+- Reply only with what you would say out loud.${scenario}`;
+}
+
+// ---- Loading the in-browser model ------------------------------------------
+
+function populateModelSelect() {
+  modelSelect.innerHTML = "";
+  // Default to an f16 model if the GPU supports it, otherwise an f32 one.
+  for (const m of MODELS) {
+    const opt = document.createElement("option");
+    opt.value = m.id;
+    opt.textContent = m.label;
+    modelSelect.appendChild(opt);
+  }
+  const def =
+    pendingModelId ||
+    (supportsF16
+      ? "Llama-3.2-1B-Instruct-q4f16_1-MLC"
+      : "Llama-3.2-1B-Instruct-q4f32_1-MLC");
+  modelSelect.value = def;
+}
+
+async function detectWebGPU() {
+  if (!navigator.gpu) return false;
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) return false;
+    supportsF16 = adapter.features?.has?.("shader-f16") ?? false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function loadModel() {
+  const modelId = modelSelect.value;
+  setupReady.hidden = true;
+  setupError.hidden = true;
+  setupProgress.hidden = false;
+  barFill.style.width = "0%";
+  progressText.textContent = "Preparing…";
+
+  try {
+    engine = await webllm.CreateMLCEngine(modelId, {
+      initProgressCallback: (report) => {
+        const pct = Math.round((report.progress || 0) * 100);
+        barFill.style.width = `${pct}%`;
+        progressText.textContent = report.text || `${pct}%`;
+      },
+    });
+    loadedModelId = modelId;
+    saveSettings();
+    finishSetup();
+  } catch (err) {
+    console.error("Model load failed:", err);
+    setupProgress.hidden = true;
+    setupReady.hidden = false;
+    setupError.hidden = false;
+    setupError.innerHTML =
+      "<p>Couldn't load that model. If you have an older graphics card, try a " +
+      "<strong>(compatibility / older GPUs)</strong> option. Otherwise check your " +
+      "internet connection and try again.</p>";
+  }
+}
+
+function finishSetup() {
+  setupEl.hidden = true;
+  controlsEl.hidden = false;
+  showWelcome();
+}
 
 // ---- Voices ----------------------------------------------------------------
 
@@ -76,11 +226,9 @@ function populateVoices() {
     opt.textContent = `${v.name} (${v.lang})`;
     voiceSelect.appendChild(opt);
   }
-  // Prefer a saved choice, else a natural-sounding default.
   const preferred =
     pendingVoiceURI ||
-    voices.find((v) => /natural|google|samantha|aria|jenny/i.test(v.name))
-      ?.voiceURI ||
+    voices.find((v) => /natural|google|samantha|aria|jenny/i.test(v.name))?.voiceURI ||
     voices[0].voiceURI;
   voiceSelect.value = preferred;
 }
@@ -96,15 +244,14 @@ function getSelectedVoice() {
 
 // ---- Speaking (TTS) --------------------------------------------------------
 
-// The detailed-coaching feedback note shouldn't be read aloud. Split it out.
 function splitReply(text) {
-  const idx = text.search(/\n-{2,}\s*\n?\s*📝|\n📝\s*Feedback/i);
+  const idx = text.search(/\n-{2,}\s*\n?\s*📝|\n?📝\s*Feedback/i);
   if (idx === -1) return { spoken: text.trim(), feedback: null };
   const spoken = text.slice(0, idx).trim();
-  let feedback = text
+  const feedback = text
     .slice(idx)
     .replace(/^\s*\n?-{2,}\s*\n?/, "")
-    .replace(/^📝\s*Feedback:?\s*/i, "")
+    .replace(/^\n?📝\s*Feedback:?\s*/i, "")
     .trim();
   return { spoken, feedback };
 }
@@ -130,8 +277,7 @@ function speak(text, onEnd) {
 // ---- Rendering -------------------------------------------------------------
 
 function clearWelcome() {
-  const w = chatEl.querySelector(".welcome");
-  if (w) w.remove();
+  chatEl.querySelector(".welcome")?.remove();
 }
 
 function showWelcome() {
@@ -166,82 +312,54 @@ function addTyping() {
 function renderMapleMessage(el, fullText) {
   const { spoken, feedback } = splitReply(fullText);
   el.textContent = spoken || fullText;
-
   if (feedback) {
     const fb = document.createElement("div");
     fb.className = "feedback";
     fb.textContent = `📝 ${feedback}`;
     el.appendChild(fb);
   }
-
   const replay = document.createElement("button");
   replay.className = "speak-again";
   replay.innerHTML = "🔊 Hear again";
   replay.onclick = () => speak(spoken || fullText);
   el.appendChild(replay);
-
   chatEl.scrollTop = chatEl.scrollHeight;
 }
 
-// ---- Talking to the server (streaming) -------------------------------------
+// ---- Generation (in-browser, streaming) ------------------------------------
 
 async function sendToMaple() {
+  if (!engine) return;
   busy = true;
   micBtn.classList.add("thinking");
   const typingEl = addTyping();
 
-  const payload = {
-    messages,
-    level: controls.level.value,
-    style: controls.style.value,
-    corrections: controls.corrections.value,
-    scenario: controls.scenario.value,
-  };
+  const chatMessages = [
+    { role: "system", content: buildSystemPrompt() },
+    ...messages.slice(-16).map((m) => ({ role: m.role, content: m.content })),
+  ];
 
   let fullText = "";
   let firstChunk = true;
 
   try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+    const stream = await engine.chat.completions.create({
+      messages: chatMessages,
+      stream: true,
+      temperature: 0.7,
+      max_tokens: 300,
     });
 
-    if (!res.ok || !res.body) throw new Error("Request failed");
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-
-      const parts = buffer.split("\n\n");
-      buffer = parts.pop();
-      for (const part of parts) {
-        const line = part.match(/^event: (.+)\ndata: (.+)$/s);
-        if (!line) continue;
-        const [, event, dataStr] = line;
-        const data = JSON.parse(dataStr);
-
-        if (event === "delta") {
-          if (firstChunk) {
-            typingEl.textContent = "";
-            firstChunk = false;
-          }
-          fullText += data.text;
-          // Show only the spoken part live; feedback renders at the end.
-          typingEl.textContent = splitReply(fullText).spoken || fullText;
-          chatEl.scrollTop = chatEl.scrollHeight;
-        } else if (event === "done") {
-          fullText = data.text || fullText;
-        } else if (event === "error") {
-          throw new Error(data.message);
-        }
+    for await (const chunk of stream) {
+      const delta = chunk.choices?.[0]?.delta?.content || "";
+      if (!delta) continue;
+      if (firstChunk) {
+        typingEl.textContent = "";
+        firstChunk = false;
       }
+      fullText += delta;
+      typingEl.textContent = splitReply(fullText).spoken || fullText;
+      chatEl.scrollTop = chatEl.scrollHeight;
     }
 
     if (!fullText.trim()) throw new Error("Empty response");
@@ -251,13 +369,12 @@ async function sendToMaple() {
 
     const { spoken } = splitReply(fullText);
     speak(spoken || fullText, () => {
-      if (controls.autoListen.checked && recognition && !textFormVisible()) {
+      if (controls.autoListen.checked && recognition && textForm.hidden) {
         startListening();
       }
     });
   } catch (err) {
     console.error(err);
-    typingEl.classList.remove("maple");
     typingEl.className = "msg maple";
     typingEl.textContent =
       "Sorry, I had trouble responding just now. Please try again.";
@@ -313,9 +430,7 @@ function setupRecognition() {
   };
 
   recognition.onerror = (e) => {
-    if (e.error === "no-speech") {
-      interimEl.textContent = "I didn't catch that — try again.";
-    }
+    if (e.error === "no-speech") interimEl.textContent = "I didn't catch that — try again.";
   };
 
   recognition.onend = () => {
@@ -329,11 +444,11 @@ function setupRecognition() {
 
 function startListening() {
   if (!recognition || listening || busy) return;
-  synth?.cancel(); // stop Maple talking if user wants to jump in
+  synth?.cancel();
   try {
     recognition.start();
   } catch {
-    /* start() throws if already started; ignore */
+    /* already started */
   }
 }
 
@@ -342,6 +457,8 @@ function stopListening() {
 }
 
 // ---- UI wiring -------------------------------------------------------------
+
+loadBtn.addEventListener("click", loadModel);
 
 micBtn.addEventListener("click", () => {
   if (!recognition) {
@@ -363,15 +480,10 @@ settingsToggle.addEventListener("click", () => {
   settingsEl.hidden = !settingsEl.hidden;
 });
 
-for (const el of Object.values(controls)) {
-  el.addEventListener("change", saveSettings);
-}
+for (const el of Object.values(controls)) el.addEventListener("change", saveSettings);
 voiceSelect.addEventListener("change", saveSettings);
+modelSelect.addEventListener("change", saveSettings);
 
-// Text input fallback / alternative
-function textFormVisible() {
-  return !textForm.hidden;
-}
 function toggleTextForm(show) {
   textForm.hidden = show === undefined ? !textForm.hidden : !show;
   if (!textForm.hidden) textInput.focus();
@@ -386,6 +498,17 @@ textForm.addEventListener("submit", (e) => {
 
 // ---- Init ------------------------------------------------------------------
 
-loadSettings();
-setupRecognition();
-showWelcome();
+async function init() {
+  loadSettings();
+  setupRecognition();
+
+  const hasWebGPU = await detectWebGPU();
+  if (!hasWebGPU) {
+    setupReady.hidden = true;
+    noWebGPU.hidden = false;
+    return;
+  }
+  populateModelSelect();
+}
+
+init();

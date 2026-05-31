@@ -1,19 +1,13 @@
 {
   "name": "maple-speak",
-  "version": "1.0.0",
-  "description": "A voice-based web app to practice speaking English fluently with an AI conversation partner.",
+  "version": "2.0.0",
+  "description": "A free, private, voice-based web app to practice speaking English. The AI runs entirely in your browser — no API key, no account, nothing to pay.",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.68.0",
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2"
   }
 }

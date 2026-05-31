@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Maple Speak · Practice English Out Loud</title>
+    <title>Maple Speak · Practice English Out Loud (free & private)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -82,11 +82,11 @@
 
       <div id="interim" class="interim" hidden></div>
 
-      <footer class="controls">
+      <footer class="controls" hidden>
         <button id="textToggle" class="icon-btn" title="Type instead" aria-label="Type a message">
           ⌨️
         </button>
-        <button id="micBtn" class="mic" aria-label="Hold to speak">
+        <button id="micBtn" class="mic" aria-label="Tap to speak">
           <span class="mic-icon">🎙️</span>
           <span class="mic-label">Tap to speak</span>
         </button>
@@ -106,14 +106,55 @@
       </form>
     </div>
 
+    <!-- One-time setup: load the in-browser AI model -->
+    <div id="setup" class="setup-overlay">
+      <div class="setup-card">
+        <span class="leaf big">🍁</span>
+        <h2>Maple runs free, right on your device</h2>
+        <p class="setup-sub">
+          Maple's AI runs entirely inside your browser — <strong>no account,
+          no API key, nothing to pay</strong>, and your conversations never
+          leave your computer.
+        </p>
+
+        <div id="setupReady">
+          <p class="setup-note">
+            The first time, your browser downloads the AI model once
+            (a few hundred MB to ~1&nbsp;GB). After that it loads instantly and
+            even works offline.
+          </p>
+          <label class="setup-label" for="modelSelect">Choose a model</label>
+          <select id="modelSelect" class="setup-select"></select>
+          <button id="loadBtn" class="setup-btn">Load Maple ✨</button>
+        </div>
+
+        <div id="setupProgress" hidden>
+          <div class="bar"><div id="barFill" class="bar-fill"></div></div>
+          <p id="progressText" class="progress-text">Starting…</p>
+          <p class="setup-note">First download can take a few minutes — it's saved for next time.</p>
+        </div>
+
+        <div id="setupError" class="setup-error" hidden></div>
+
+        <div id="noWebGPU" class="setup-error" hidden>
+          <p>
+            This device can't run the in-browser AI because it doesn't support
+            <strong>WebGPU</strong>. Please open Maple Speak in an up-to-date
+            <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on
+            a desktop or laptop (Windows, macOS, Linux, or Android).
+          </p>
+        </div>
+      </div>
+    </div>
+
     <div id="unsupported" class="unsupported" hidden>
       <p>
-        Your browser doesn't support speech recognition. You can still type to
-        chat with Maple, but for the full speaking experience please use
-        <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on desktop or Android.
+        Your browser doesn't support speech recognition, so you'll type to chat.
+        For the full speaking experience, use <strong>Google Chrome</strong> or
+        <strong>Microsoft Edge</strong>.
       </p>
     </div>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>
