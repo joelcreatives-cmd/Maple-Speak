@@ -36,6 +36,7 @@ completely:
 - 💡 **Explain simply** — on any of Maple's replies, tap "Explain simply" to get
   the same thing in easier English, with hard words defined.
 - 🐢 **Adjustable speaking speed** — slow Maple's voice down or speed it up.
+- ⏹️ **Stop button** — interrupt Maple mid-sentence whenever you want.
 - 🔥 **Daily streak** — a gentle nudge that counts the days you practice in a row.
 - 📊 **Session review** — tap the chart button for a recap: how much you spoke,
   nice vocabulary you used, words to practice saying clearly (tap to hear them),

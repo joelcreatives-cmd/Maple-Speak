@@ -22,6 +22,8 @@ const rateVal = $("rateVal");
 const controlsEl = document.querySelector(".controls");
 const reviewBtn = $("reviewBtn");
 const autoBtn = $("autoBtn");
+const stopBtn = $("stopBtn");
+const scrollBtn = $("scrollBtn");
 const streakBar = $("streakBar");
 const streakText = $("streakText");
 
@@ -78,14 +80,19 @@ let autoMode = false;
 let autoRestartTimer = null;
 
 let engine = null;
-let loadedModelId = null;
+let loadingModel = false;
 let supportsF16 = false;
+
+// Bumped whenever an in-flight reply should be discarded (e.g. the user resets
+// or starts a new session mid-generation). A generation whose token no longer
+// matches must not mutate shared state.
+let generation = 0;
 
 // Words the speech recognizer was unsure about, gathered across the session.
 // These are good pronunciation-practice candidates.
 let trickyWords = new Map(); // word -> count
 
-// A few friendly openers shown on the welcome screen.
+// Friendly openers shown on the welcome screen (a random few each time).
 const STARTERS = [
   "Tell me about your day so far.",
   "What did you have for lunch?",
@@ -93,6 +100,14 @@ const STARTERS = [
   "Describe your favorite place to relax.",
   "What's a movie or show you enjoyed recently?",
   "If you could travel anywhere, where would you go?",
+  "What's a hobby you'd love to try?",
+  "Tell me about a food you really love.",
+  "What did you do last weekend?",
+  "Who is someone you admire, and why?",
+  "What's your dream job?",
+  "Describe your hometown to me.",
+  "What's a goal you're working on right now?",
+  "What kind of music do you like?",
 ];
 
 // Very common English words — used to surface less-common vocabulary the
@@ -154,13 +169,17 @@ let pendingModelId = null;
 
 const SESSION_KEY = "maple-speak-session";
 
+// Keep at most this many recent messages in storage (the model only sees the
+// last 16 anyway). Prevents localStorage from growing without bound.
+const MAX_STORED_MESSAGES = 100;
+
 function saveSession() {
   try {
     localStorage.setItem(
       SESSION_KEY,
       JSON.stringify({
-        messages,
-        tricky: [...trickyWords.entries()],
+        messages: messages.slice(-MAX_STORED_MESSAGES),
+        tricky: [...trickyWords.entries()].slice(-200),
         savedAt: Date.now(),
       }),
     );
@@ -186,6 +205,9 @@ function restoreSession() {
 }
 
 function clearSession() {
+  generation++; // invalidate any in-flight reply so it can't repopulate state
+  busy = false;
+  micBtn.classList.remove("thinking");
   messages = [];
   trickyWords = new Map();
   localStorage.removeItem(SESSION_KEY);
@@ -331,6 +353,9 @@ async function detectWebGPU() {
 }
 
 async function loadModel() {
+  if (loadingModel || engine) return; // guard against double-taps / re-entry
+  loadingModel = true;
+  loadBtn.disabled = true;
   const modelId = modelSelect.value;
   setupReady.hidden = true;
   setupError.hidden = true;
@@ -346,11 +371,11 @@ async function loadModel() {
         progressText.textContent = report.text || `${pct}%`;
       },
     });
-    loadedModelId = modelId;
     saveSettings();
     finishSetup();
   } catch (err) {
     console.error("Model load failed:", err);
+    engine = null;
     setupProgress.hidden = true;
     setupReady.hidden = false;
     setupError.hidden = false;
@@ -358,6 +383,9 @@ async function loadModel() {
       "<p>Couldn't load that model. If you have an older graphics card, try a " +
       "<strong>(compatibility / older GPUs)</strong> option. Otherwise check your " +
       "internet connection and try again.</p>";
+  } finally {
+    loadingModel = false;
+    loadBtn.disabled = false;
   }
 }
 
@@ -428,12 +456,36 @@ function speak(text, onEnd) {
     utter.lang = voice.lang;
   }
   utter.rate = parseFloat(rateSlider.value) || 1.0;
-  utter.onend = () => onEnd?.();
-  utter.onerror = () => onEnd?.();
+  const done = (interrupted) => {
+    stopBtn.hidden = true;
+    micBtn.classList.remove("speaking");
+    onEnd?.(interrupted);
+  };
+  utter.onstart = () => {
+    stopBtn.hidden = false;
+    micBtn.classList.add("speaking");
+  };
+  utter.onend = () => done(false);
+  utter.onerror = () => done(true);
   synth.speak(utter);
 }
 
+// Stop Maple mid-sentence without starting to listen.
+function stopSpeaking() {
+  synth?.cancel();
+  stopBtn.hidden = true;
+  micBtn.classList.remove("speaking");
+}
+
 // ---- Rendering -------------------------------------------------------------
+
+// Scroll the chat to the bottom only if the user is already near it, so we
+// don't yank the view away while they're scrolled up re-reading.
+function maybeAutoScroll() {
+  const nearBottom =
+    chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 120;
+  if (nearBottom) chatEl.scrollTop = chatEl.scrollHeight;
+}
 
 function clearWelcome() {
   chatEl.querySelector(".welcome")?.remove();
@@ -576,6 +628,7 @@ async function explainMessage(text, msgEl) {
 
 async function sendToMaple() {
   if (!engine) return;
+  const myGen = generation; // snapshot — invalidated if the session is reset
   busy = true;
   micBtn.classList.add("thinking");
   const typingEl = addTyping();
@@ -597,6 +650,7 @@ async function sendToMaple() {
     });
 
     for await (const chunk of stream) {
+      if (myGen !== generation) return; // session was reset — abandon quietly
       const delta = chunk.choices?.[0]?.delta?.content || "";
       if (!delta) continue;
       if (firstChunk) {
@@ -605,9 +659,10 @@ async function sendToMaple() {
       }
       fullText += delta;
       typingEl.textContent = splitReply(fullText).spoken || fullText;
-      chatEl.scrollTop = chatEl.scrollHeight;
+      maybeAutoScroll();
     }
 
+    if (myGen !== generation) return;
     if (!fullText.trim()) throw new Error("Empty response");
 
     messages.push({ role: "assistant", content: fullText });
@@ -615,21 +670,32 @@ async function sendToMaple() {
     renderMapleMessage(typingEl, fullText);
 
     const { spoken } = splitReply(fullText);
-    speak(spoken || fullText, () => {
+    speak(spoken || fullText, (interrupted) => {
       // After Maple finishes speaking, listen again automatically when either
-      // hands-free auto mode or the auto-listen toggle is on.
-      if ((autoMode || controls.autoListen.checked) && recognition && textForm.hidden) {
+      // hands-free auto mode or the auto-listen toggle is on. Skip if the user
+      // interrupted, or if the session was reset during TTS.
+      if (
+        !interrupted &&
+        myGen === generation &&
+        (autoMode || controls.autoListen.checked) &&
+        recognition &&
+        textForm.hidden
+      ) {
         startListening();
       }
     });
   } catch (err) {
     console.error(err);
-    typingEl.className = "msg maple";
-    typingEl.textContent =
-      "Sorry, I had trouble responding just now. Please try again.";
+    if (myGen === generation) {
+      typingEl.className = "msg maple";
+      typingEl.textContent =
+        "Sorry, I had trouble responding just now. Please try again.";
+    }
   } finally {
-    busy = false;
-    micBtn.classList.remove("thinking");
+    if (myGen === generation) {
+      busy = false;
+      micBtn.classList.remove("thinking");
+    }
   }
 }
 
@@ -926,6 +992,22 @@ micBtn.addEventListener("click", () => {
 });
 
 autoBtn.addEventListener("click", toggleAutoMode);
+
+// Stop Maple speaking. If interrupted by hand, don't auto-re-listen.
+stopBtn.addEventListener("click", () => {
+  stopSpeaking();
+  clearTimeout(autoRestartTimer);
+});
+
+// Scroll-to-latest button appears when the user scrolls up.
+scrollBtn.addEventListener("click", () => {
+  chatEl.scrollTo({ top: chatEl.scrollHeight, behavior: "smooth" });
+});
+chatEl.addEventListener("scroll", () => {
+  const nearBottom =
+    chatEl.scrollHeight - chatEl.scrollTop - chatEl.clientHeight < 120;
+  scrollBtn.hidden = nearBottom;
+});
 
 function endAutoMode() {
   autoMode = false;

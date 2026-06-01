@@ -96,7 +96,11 @@
 
       <main id="chat" class="chat" aria-live="polite"></main>
 
-      <div id="interim" class="interim" hidden></div>
+      <button id="scrollBtn" class="scroll-fab" aria-label="Scroll to latest" hidden>
+        ↓
+      </button>
+
+      <div id="interim" class="interim" aria-live="polite" hidden></div>
 
       <footer class="controls" hidden>
         <button id="textToggle" class="icon-btn" title="Type instead" aria-label="Type a message">
@@ -114,6 +118,9 @@
         <button id="micBtn" class="mic" aria-label="Tap to speak">
           <span class="mic-icon">🎙️</span>
           <span class="mic-label">Tap to speak</span>
+        </button>
+        <button id="stopBtn" class="icon-btn" title="Stop Maple speaking" aria-label="Stop Maple speaking" hidden>
+          ⏹️
         </button>
         <button id="reviewBtn" class="icon-btn" title="Review this session" aria-label="Review this session">
           📊

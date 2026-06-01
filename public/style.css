@@ -583,6 +583,50 @@ h1 {
   pointer-events: none;
 }
 
+/* Maple is speaking — gentle glow on the mic so it's clear she has the floor */
+.mic.speaking {
+  animation: speakglow 1.6s ease-in-out infinite;
+}
+@keyframes speakglow {
+  0%,
+  100% {
+    box-shadow: var(--shadow-maple);
+  }
+  50% {
+    box-shadow: 0 8px 28px rgba(194, 84, 31, 0.55);
+  }
+}
+
+/* Scroll-to-latest floating button */
+.scroll-fab {
+  position: sticky;
+  bottom: 8px;
+  align-self: center;
+  margin-top: -44px;
+  margin-bottom: 8px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 999px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  z-index: 10;
+  transition: transform 0.12s var(--ease), background 0.12s var(--ease);
+  animation: rise 0.2s var(--ease);
+}
+@media (hover: hover) {
+  .scroll-fab:hover {
+    background: var(--maple-soft);
+  }
+}
+.scroll-fab:active {
+  transform: scale(0.9);
+}
+
 /* ---- Text input ------------------------------------------------------ */
 .text-form {
   display: flex;
