@@ -24,7 +24,10 @@ completely:
 
 - 🎙️ **Speak naturally** — your voice is transcribed in the browser.
 - 🔊 **Maple talks back** — replies are read aloud, so it feels like a real chat.
-- 🔁 **Hands-free** — Maple auto-listens after it finishes speaking.
+- 🔁 **Hands-free auto mode** — tap the 🔁 button once and the app loops on its
+  own: it listens, you talk, Maple replies, then it listens again — no tapping
+  between turns. Tap 🔁 again (or the mic) to stop. (Browsers require that first
+  tap to switch on the microphone.)
 - ✍️ **Corrections, your way** — gentle conversational fixes, detailed coaching
   notes, or none.
 - 🎚️ **Adapts to you** — level (beginner / intermediate / advanced) and partner style.

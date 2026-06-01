@@ -224,6 +224,24 @@ h1 {
   transform: scale(0.92);
 }
 
+/* Active state for toggle icon buttons (hands-free auto mode) */
+.icon-btn.active {
+  background: var(--maple);
+  border-color: var(--maple);
+  color: var(--on-maple);
+  box-shadow: var(--shadow-maple);
+  animation: autopulse 1.6s ease-in-out infinite;
+}
+@keyframes autopulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(194, 84, 31, 0.4);
+  }
+  60% {
+    box-shadow: 0 0 0 10px rgba(194, 84, 31, 0);
+  }
+}
+
 /* ---- Settings --------------------------------------------------------- */
 .settings {
   background: var(--surface);

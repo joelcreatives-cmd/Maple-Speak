@@ -21,6 +21,7 @@ const rateSlider = $("rate");
 const rateVal = $("rateVal");
 const controlsEl = document.querySelector(".controls");
 const reviewBtn = $("reviewBtn");
+const autoBtn = $("autoBtn");
 const streakBar = $("streakBar");
 const streakText = $("streakText");
 
@@ -69,6 +70,12 @@ let messages = []; // { role: 'user' | 'assistant', content }
 let listening = false;
 let busy = false;
 let voices = [];
+
+// Hands-free auto mode: once on, the app loops listen → talk → reply → listen
+// with no taps. Browsers require the FIRST mic start to come from a tap, so
+// turning auto mode on also starts the first listen.
+let autoMode = false;
+let autoRestartTimer = null;
 
 let engine = null;
 let loadedModelId = null;
@@ -609,7 +616,9 @@ async function sendToMaple() {
 
     const { spoken } = splitReply(fullText);
     speak(spoken || fullText, () => {
-      if (controls.autoListen.checked && recognition && textForm.hidden) {
+      // After Maple finishes speaking, listen again automatically when either
+      // hands-free auto mode or the auto-listen toggle is on.
+      if ((autoMode || controls.autoListen.checked) && recognition && textForm.hidden) {
         startListening();
       }
     });
@@ -642,6 +651,7 @@ function setupRecognition() {
     micBtn.querySelector(".mic-label").textContent = "Type to chat";
     controls.autoListen.checked = false;
     controls.autoListen.disabled = true;
+    autoBtn.hidden = true; // no speech recognition → no hands-free mode
     return;
   }
 
@@ -655,7 +665,9 @@ function setupRecognition() {
     listening = true;
     finalText = "";
     micBtn.classList.add("listening");
-    micBtn.querySelector(".mic-label").textContent = "Listening… tap to stop";
+    micBtn.querySelector(".mic-label").textContent = autoMode
+      ? "Listening… (auto)"
+      : "Listening… tap to stop";
     interimEl.hidden = false;
     interimEl.textContent = "…";
   };
@@ -678,15 +690,34 @@ function setupRecognition() {
   };
 
   recognition.onerror = (e) => {
-    if (e.error === "no-speech") interimEl.textContent = "I didn't catch that — try again.";
+    // "no-speech"/"aborted" are normal in a hands-free loop — don't treat as fatal.
+    if (e.error === "no-speech") {
+      interimEl.textContent = "I didn't catch that…";
+    } else if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      // Mic permission denied — auto mode can't continue.
+      autoMode = false;
+      reflectAutoMode();
+      interimEl.textContent = "Microphone access is blocked. Enable it to speak.";
+    }
   };
 
   recognition.onend = () => {
     listening = false;
     micBtn.classList.remove("listening");
-    micBtn.querySelector(".mic-label").textContent = "Tap to speak";
+    micBtn.querySelector(".mic-label").textContent = autoMode
+      ? "Auto mode on"
+      : "Tap to speak";
     interimEl.hidden = true;
-    if (finalText.trim()) handleUserUtterance(finalText);
+
+    if (finalText.trim()) {
+      handleUserUtterance(finalText); // a reply will re-arm listening when it's done
+    } else if (autoMode && !busy) {
+      // Heard nothing this round — keep the hands-free loop alive after a beat.
+      clearTimeout(autoRestartTimer);
+      autoRestartTimer = setTimeout(() => {
+        if (autoMode && !busy && !listening) startListening();
+      }, 700);
+    }
   };
 }
 
@@ -702,6 +733,38 @@ function startListening() {
 
 function stopListening() {
   if (recognition && listening) recognition.stop();
+}
+
+// ---- Hands-free auto mode --------------------------------------------------
+
+function reflectAutoMode() {
+  autoBtn.classList.toggle("active", autoMode);
+  autoBtn.setAttribute("aria-pressed", autoMode ? "true" : "false");
+  autoBtn.title = autoMode ? "Auto mode: ON (tap to stop)" : "Hands-free auto mode";
+  if (!autoMode) {
+    micBtn.querySelector(".mic-label").textContent = listening
+      ? "Listening… tap to stop"
+      : "Tap to speak";
+  }
+}
+
+function toggleAutoMode() {
+  if (!recognition) {
+    // No speech recognition available — auto mode can't work; offer typing.
+    toggleTextForm(true);
+    return;
+  }
+  autoMode = !autoMode;
+  reflectAutoMode();
+
+  if (autoMode) {
+    // This click is the user gesture browsers require to start the mic.
+    synth?.cancel();
+    if (!busy && !listening) startListening();
+  } else {
+    clearTimeout(autoRestartTimer);
+    stopListening();
+  }
 }
 
 // ---- Session review --------------------------------------------------------
@@ -737,6 +800,7 @@ function statBlock(num, lbl) {
 
 async function openReview() {
   if (busy) return;
+  endAutoMode();
   stopListening();
   synth?.cancel();
 
@@ -851,14 +915,29 @@ micBtn.addEventListener("click", () => {
     toggleTextForm(true);
     return;
   }
+  // A manual mic tap takes over from auto mode.
+  if (autoMode) {
+    autoMode = false;
+    clearTimeout(autoRestartTimer);
+    reflectAutoMode();
+  }
   if (listening) stopListening();
   else startListening();
 });
+
+autoBtn.addEventListener("click", toggleAutoMode);
+
+function endAutoMode() {
+  autoMode = false;
+  clearTimeout(autoRestartTimer);
+  reflectAutoMode();
+}
 
 resetBtn.addEventListener("click", () => {
   if (messages.length && !confirm("Start a new session? This clears the current chat.")) {
     return;
   }
+  endAutoMode();
   synth?.cancel();
   stopListening();
   clearSession();
@@ -870,6 +949,7 @@ reviewClose.addEventListener("click", closeReview);
 reviewKeepGoing.addEventListener("click", closeReview);
 reviewNew.addEventListener("click", () => {
   closeReview();
+  endAutoMode();
   synth?.cancel();
   stopListening();
   clearSession();

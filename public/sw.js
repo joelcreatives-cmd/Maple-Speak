@@ -2,7 +2,7 @@
 // works offline. The AI model itself is cached separately by WebLLM in the
 // browser's storage, so once everything is loaded, Maple works with no network.
 
-const CACHE = "maple-speak-v4";
+const CACHE = "maple-speak-v5";
 const SHELL = [
   "./",
   "./index.html",
