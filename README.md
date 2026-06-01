@@ -5,7 +5,7 @@ to **Maple** — an AI conversation partner — and it talks back out loud, gent
 helping your English along the way.
 
 **There's nothing to pay and no account to create.** The AI runs entirely
-inside your browser, so your conversations never leave your computer.
+inside your browser, so your conversations never leave your device.
 
 ## How it stays free
 
@@ -52,8 +52,8 @@ completely:
 - A modern **Google Chrome** or **Microsoft Edge** (desktop/laptop, or Android)
   with **WebGPU** support — this is what runs the AI. Most up-to-date versions
   have it on by default.
-- A computer with a reasonably capable GPU and enough memory. Smaller models
-  (the default) work on more modest hardware.
+- A device with a reasonably capable GPU and enough memory. Smaller models
+  (the default) work on more modest hardware, including many phones.
 - That's it — **no API key, no Node packages to install** for the AI.
 
 ## Run it
@@ -85,7 +85,7 @@ On the start screen you can pick from a few small, free models:
 | **Llama 3.2 3B** | ~1.8 GB | Bigger & smarter, but slower |
 | *…1B / 1.5B (compatibility)* | larger | For older GPUs without `shader-f16` |
 
-Bigger models give more natural conversation but need a stronger computer.
+Bigger models give more natural conversation but need a stronger device.
 
 ## A note on quality
 

@@ -188,7 +188,10 @@ h1 {
   letter-spacing: -0.01em;
 }
 
+/* Mobile-first: tagline hidden by default to keep the header compact;
+   shown on wider screens (see the min-width block below). */
 .tagline {
+  display: none;
   margin: 3px 0 0;
   font-size: 13px;
   color: var(--muted);
@@ -243,15 +246,16 @@ h1 {
 }
 
 /* ---- Settings --------------------------------------------------------- */
+/* Mobile-first: single column by default; two columns on wider screens. */
 .settings {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 18px;
+  padding: 16px;
   margin-bottom: 12px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 16px;
+  grid-template-columns: 1fr;
+  gap: 13px;
   box-shadow: var(--shadow);
   animation: rise 0.25s var(--ease);
 }
@@ -347,7 +351,7 @@ h1 {
 
 .msg {
   position: relative;
-  max-width: 80%;
+  max-width: 88%; /* mobile-first; tightened to 80% on wider screens */
   padding: 12px 16px;
   border-radius: var(--radius);
   line-height: 1.5;
@@ -521,15 +525,20 @@ h1 {
 }
 
 /* ---- Bottom control dock --------------------------------------------- */
+/* Mobile-first: the mic is the hero and flexes to fill the row; the small
+   icon buttons stay a fixed size. Everything fits one row on a narrow phone. */
 .controls {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  padding: 10px 0 calc(18px + var(--safe-b));
+  gap: 10px;
+  padding: 10px 0 calc(16px + var(--safe-b));
 }
 
 .mic {
+  flex: 1 1 auto;
+  max-width: 320px;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -540,13 +549,18 @@ h1 {
   font: inherit;
   font-weight: 700;
   font-size: 16px;
-  padding: 15px 26px;
-  min-height: 54px;
+  padding: 15px 22px;
+  min-height: 56px;
   border-radius: 999px;
   cursor: pointer;
   box-shadow: var(--shadow-maple);
   transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease),
     background 0.12s var(--ease);
+}
+.mic .mic-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 @media (hover: hover) {
   .mic:hover {
@@ -1036,36 +1050,42 @@ h1 {
   }
 }
 
-/* ---- Responsive ------------------------------------------------------ */
-@media (max-width: 540px) {
+/* ---- Responsive (mobile-first: enhance upward) ----------------------- */
+
+/* Tablets / larger phones and up: roomier header + two-column settings. */
+@media (min-width: 600px) {
+  .tagline {
+    display: block;
+  }
   .settings {
-    grid-template-columns: 1fr;
-    gap: 12px;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+    padding: 18px;
   }
   .msg {
-    max-width: 88%;
-    font-size: 15.5px;
-  }
-  .tagline {
-    display: none; /* keep the header compact on phones */
+    max-width: 80%;
+    font-size: 16px;
   }
   .controls {
-    gap: 10px;
-  }
-  .icon-btn {
-    width: 44px;
-    height: 44px;
-  }
-  .mic {
-    padding: 14px 20px;
+    gap: 14px;
   }
 }
 
-@media (max-width: 360px) {
+/* Very narrow phones: icon-only mic so the whole dock fits one row. */
+@media (max-width: 374px) {
+  .controls {
+    gap: 8px;
+  }
+  .icon-btn {
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+  }
   .mic .mic-label {
-    display: none; /* icon-only mic on very narrow screens */
+    display: none;
   }
   .mic {
+    flex: 0 0 auto;
     padding: 14px 18px;
   }
 }
