@@ -35,6 +35,9 @@ completely:
 - 💬 **Conversation starters** — stuck for words? Tap a suggested opener to begin.
 - 💡 **Explain simply** — on any of Maple's replies, tap "Explain simply" to get
   the same thing in easier English, with hard words defined.
+- 💬 **Help me reply** — stuck for words? Tap it on any reply and Maple suggests a
+  few natural things you could say; tap one to send it, or use it as inspiration.
+- 📏 **Reply length** — choose Short, Medium, or Longer replies to match your level.
 - 🐢 **Adjustable speaking speed** — slow Maple's voice down or speed it up.
 - ⏹️ **Stop button** — interrupt Maple mid-sentence whenever you want.
 - 🔥 **Daily streak** — a gentle nudge that counts the days you practice in a row.

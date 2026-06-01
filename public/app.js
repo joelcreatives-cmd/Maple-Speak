@@ -50,6 +50,7 @@ const controls = {
   level: $("level"),
   style: $("style"),
   corrections: $("corrections"),
+  length: $("length"),
   scenario: $("scenario"),
   autoSpeak: $("autoSpeak"),
   autoListen: $("autoListen"),
@@ -243,13 +244,17 @@ function markPracticedToday() {
   if (prev && prev.last === today) return; // already counted today
 
   let count = 1;
+  const totalDays = (prev?.totalDays || 0) + 1; // all-time days practiced
   if (prev) {
     const gap = dayNumber(today) - dayNumber(prev.last);
     if (gap === 1) count = (prev.count || 0) + 1; // consecutive day
     else if (gap === 0) count = prev.count || 1; // same day (shouldn't hit)
     // gap > 1 → streak broken, restart at 1
   }
-  localStorage.setItem(STREAK_KEY, JSON.stringify({ last: today, count }));
+  localStorage.setItem(
+    STREAK_KEY,
+    JSON.stringify({ last: today, count, totalDays }),
+  );
   renderStreak();
 }
 
@@ -296,11 +301,17 @@ const CORRECTIONS = {
     "After replying conversationally, ALWAYS add a short feedback note at the very end on its own line, in exactly this format:\n📝 Feedback: <one or two friendly tips, or praise if they did well>",
   none: "Do NOT correct the learner's mistakes. Just have a natural, enjoyable conversation.",
 };
+const LENGTHS = {
+  short: "Keep replies very short: 1 sentence plus one short question.",
+  medium: "Keep replies short: 1 to 2 sentences, then one short question.",
+  long: "Replies can be a little fuller: 2 to 3 sentences, then one question.",
+};
 
 function buildSystemPrompt() {
   const level = LEVELS[controls.level.value] || LEVELS.intermediate;
   const style = STYLES[controls.style.value] || STYLES.friendly;
   const corr = CORRECTIONS[controls.corrections.value] || CORRECTIONS.gentle;
+  const length = LENGTHS[controls.length?.value] || LENGTHS.medium;
   const scenario = controls.scenario.value
     ? `\nTODAY'S SCENARIO: ${controls.scenario.value}. Stay in this scenario and play your role.`
     : "";
@@ -312,10 +323,13 @@ Keep the learner talking — that is how they improve.
 PERSONALITY: ${style}
 LEVEL: ${level}
 CORRECTIONS: ${corr}
+LENGTH: ${length}
 
 RULES:
-- Keep replies SHORT and conversational: 1 to 3 sentences.
-- End most turns with a friendly, open question.
+- React to what the learner actually said, then move the conversation FORWARD with something new.
+- Do NOT repeat or paraphrase the learner's words back to them (don't say things like "So your day has been great, huh?"). Respond naturally instead.
+- Ask only ONE question per reply, and make it a NEW question — never re-ask something you already asked.
+- Vary how you open each reply; don't start consecutive replies the same way.
 - Sound like a real person speaking. Use plain spoken sentences with no markdown, lists, code, or emoji (the feedback note is the only exception).
 - Never say you are an AI. You are just Maple.
 - Reply only with what you would say out loud.${scenario}`;
@@ -575,20 +589,80 @@ function renderMapleMessage(el, fullText) {
   const actions = document.createElement("div");
   actions.className = "msg-actions";
 
-  const replay = document.createElement("button");
-  replay.className = "speak-again";
-  replay.innerHTML = "🔊 Hear again";
-  replay.onclick = () => speak(spoken || fullText);
-  actions.appendChild(replay);
+  const ICONS = {
+    speaker:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg>',
+    bulb:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>',
+    chat:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.7L3 21l1.3-3.9A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/></svg>',
+  };
+  const mkAction = (icon, label, fn) => {
+    const b = document.createElement("button");
+    b.className = "speak-again";
+    b.innerHTML = `${ICONS[icon]}<span>${label}</span>`;
+    b.onclick = fn;
+    return b;
+  };
 
-  const explain = document.createElement("button");
-  explain.className = "speak-again";
-  explain.innerHTML = "💡 Explain simply";
-  explain.onclick = () => explainMessage(spoken || fullText, el);
-  actions.appendChild(explain);
+  actions.appendChild(mkAction("speaker", "Hear again", () => speak(spoken || fullText)));
+  actions.appendChild(mkAction("bulb", "Explain simply", () => explainMessage(spoken || fullText, el)));
+  actions.appendChild(mkAction("chat", "Help me reply", () => suggestReplies(spoken || fullText, el)));
 
   el.appendChild(actions);
-  chatEl.scrollTop = chatEl.scrollHeight;
+  maybeAutoScroll();
+}
+
+// Suggest a few short things the learner could say next — a big help when stuck.
+async function suggestReplies(mapleText, msgEl) {
+  if (!engine || busy) return;
+  if (msgEl.querySelector(".ideas-box")) {
+    msgEl.querySelector(".ideas-box").scrollIntoView({ block: "nearest" });
+    return;
+  }
+  const box = document.createElement("div");
+  box.className = "ideas-box";
+  box.innerHTML = `<span class="coach-spinner"></span>Thinking of some ideas…`;
+  msgEl.appendChild(box);
+  maybeAutoScroll();
+
+  try {
+    const res = await engine.chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: `An English learner is practicing speaking. Their partner just said: "${mapleText}". Suggest 3 short, natural things (each under 12 words) the learner could SAY in reply, as if they were speaking. Return ONLY the 3 options, each on its own line, with no numbering, quotes, or extra text.`,
+        },
+      ],
+      temperature: 0.8,
+      max_tokens: 120,
+    });
+    const raw = (res.choices?.[0]?.message?.content || "").trim();
+    const ideas = raw
+      .split("\n")
+      .map((l) => l.replace(/^[\s\-*\d.)]+/, "").replace(/^["']|["']$/g, "").trim())
+      .filter(Boolean)
+      .slice(0, 3);
+
+    if (!ideas.length) {
+      box.textContent = "Sorry, no ideas right now — just say whatever comes to mind!";
+      return;
+    }
+    box.innerHTML = `<div class="ideas-label">Tap one to say it, or use it as inspiration:</div>`;
+    const row = document.createElement("div");
+    row.className = "starters";
+    for (const idea of ideas) {
+      const chip = document.createElement("button");
+      chip.className = "starter";
+      chip.textContent = idea;
+      chip.onclick = () => handleUserUtterance(idea);
+      row.appendChild(chip);
+    }
+    box.appendChild(row);
+    maybeAutoScroll();
+  } catch {
+    box.textContent = "Sorry, I couldn't think of ideas just now. Please try again.";
+  }
 }
 
 // Ask the model to restate its message in very simple English, shown inline.
@@ -910,6 +984,17 @@ async function openReview() {
         .join("")}</div>
       <p class="review-empty" style="margin-top:8px">Tap a word to hear it, then
       say it back a few times.</p></div>`;
+  }
+
+  // All-time progress (from the streak record).
+  const streak = readStreak();
+  if (streak && streak.totalDays) {
+    html += `<div class="review-section"><h3>Your progress</h3>
+      <p class="review-empty">You've practiced on <strong>${streak.totalDays}</strong>
+      ${streak.totalDays === 1 ? "day" : "days"} so far, with a current streak of
+      <strong>${streak.count || 1}</strong>
+      ${(streak.count || 1) === 1 ? "day" : "days"}. Keep showing up — consistency
+      is what builds fluency.</p></div>`;
   }
 
   html += `<div class="review-section"><h3>Maple's note for you</h3>
