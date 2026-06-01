@@ -100,6 +100,13 @@
   box-sizing: border-box;
 }
 
+/* The `hidden` attribute must always win, even over our display:flex layouts.
+   Without this, overlays/controls toggled via `hidden` stay visible because a
+   class's `display` rule outranks the browser's default [hidden]{display:none}. */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;
