@@ -536,31 +536,33 @@ h1 {
 }
 
 .mic {
-  flex: 1 1 auto;
-  max-width: 320px;
-  min-width: 0;
+  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   border: none;
   background: var(--maple);
   color: var(--on-maple);
-  font: inherit;
-  font-weight: 700;
-  font-size: 16px;
-  padding: 15px 22px;
-  min-height: 56px;
-  border-radius: 999px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
   cursor: pointer;
   box-shadow: var(--shadow-maple);
   transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease),
     background 0.12s var(--ease);
 }
+/* Status text ("Tap to speak", "Listening…") is kept for screen readers and
+   internal logic but visually hidden — the mic is icon-only. */
 .mic .mic-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  clip: rect(0 0 0 0);
   white-space: nowrap;
+  border: 0;
 }
 @media (hover: hover) {
   .mic:hover {
@@ -572,7 +574,7 @@ h1 {
   transform: scale(0.97);
 }
 .mic .mic-icon {
-  font-size: 20px;
+  font-size: 28px;
   line-height: 1;
 }
 
@@ -1071,7 +1073,7 @@ h1 {
   }
 }
 
-/* Very narrow phones: icon-only mic so the whole dock fits one row. */
+/* Very narrow phones: shrink the dock a touch so everything stays on one row. */
 @media (max-width: 374px) {
   .controls {
     gap: 8px;
@@ -1081,12 +1083,12 @@ h1 {
     height: 42px;
     font-size: 18px;
   }
-  .mic .mic-label {
-    display: none;
-  }
   .mic {
-    flex: 0 0 auto;
-    padding: 14px 18px;
+    width: 58px;
+    height: 58px;
+  }
+  .mic .mic-icon {
+    font-size: 26px;
   }
 }
 
