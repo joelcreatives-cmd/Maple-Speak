@@ -27,7 +27,7 @@
           <span class="leaf">🍁</span>
           <div>
             <h1>Maple Speak</h1>
-            <p class="tagline">Talk with Maple to practice your English.</p>
+            <p class="tagline" id="tagline">Talk with Maple to practice your English.</p>
           </div>
         </div>
         <button id="settingsToggle" class="icon-btn" aria-label="Settings" title="Settings">
@@ -80,26 +80,66 @@
             <option value="Talking to a doctor about how you feel">At the doctor</option>
           </select>
         </div>
+        <div class="setting">
+          <label for="partnerName">Partner's name</label>
+          <input
+            type="text"
+            id="partnerName"
+            maxlength="20"
+            placeholder="Maple"
+            autocomplete="off"
+          />
+        </div>
+        <div class="setting">
+          <label for="dailyGoal">Daily goal</label>
+          <select id="dailyGoal">
+            <option value="0">No goal</option>
+            <option value="5" selected>Talk 5 turns</option>
+            <option value="10">Talk 10 turns</option>
+            <option value="20">Talk 20 turns</option>
+          </select>
+        </div>
         <div class="setting setting--toggle">
-          <label for="autoSpeak">Read Maple's replies aloud</label>
+          <label for="autoSpeak">Read replies aloud</label>
           <input type="checkbox" id="autoSpeak" checked />
         </div>
         <div class="setting setting--toggle">
-          <label for="autoListen">Auto-listen after Maple speaks</label>
+          <label for="autoListen">Auto-listen after replies</label>
           <input type="checkbox" id="autoListen" checked />
         </div>
         <div class="setting">
-          <label for="voiceSelect">Maple's voice</label>
+          <label for="voiceSelect">Partner's voice</label>
           <select id="voiceSelect"></select>
         </div>
         <div class="setting">
           <label for="rate">Speaking speed · <span id="rateVal">Normal</span></label>
           <input type="range" id="rate" min="0.6" max="1.15" step="0.05" value="1" />
         </div>
+        <div class="setting">
+          <label for="modelSwitch">AI model</label>
+          <select id="modelSwitch"></select>
+        </div>
+        <div class="setting setting--full">
+          <button id="drillBtn" class="setting-action" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><path d="M12 18v4M8 22h8"/></svg>
+            Pronunciation practice
+          </button>
+        </div>
+        <div class="setting setting--full">
+          <button id="historyBtn" class="setting-action" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+            Saved conversations
+          </button>
+        </div>
       </section>
 
       <div id="streakBar" class="streak-bar" hidden>
         <span id="streakText"></span>
+      </div>
+
+      <div id="goalBar" class="goal-bar" hidden>
+        <div class="goal-track"><div id="goalFill" class="goal-fill"></div></div>
+        <span id="goalText" class="goal-text"></span>
       </div>
 
       <main id="chat" class="chat" aria-live="polite"></main>
@@ -165,6 +205,37 @@
           <button id="reviewKeepGoing" class="setup-btn">Keep talking</button>
           <button id="reviewNew" class="ghost-btn">Start a new session</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Pronunciation practice -->
+    <div id="drillOverlay" class="modal-overlay" hidden>
+      <div class="modal-card">
+        <button id="drillClose" class="modal-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+        <h2>Pronunciation practice</h2>
+        <p class="drill-prompt-label">Say this clearly:</p>
+        <p id="drillPhrase" class="drill-phrase">…</p>
+        <div class="drill-actions">
+          <button id="drillHear" class="ghost-btn" type="button">Hear it</button>
+          <button id="drillSpeak" class="setup-btn" type="button">Tap &amp; say it</button>
+        </div>
+        <div id="drillResult" class="drill-result" hidden></div>
+        <button id="drillNext" class="ghost-btn drill-next" type="button" hidden>
+          Next phrase →
+        </button>
+      </div>
+    </div>
+
+    <!-- Saved conversations -->
+    <div id="historyOverlay" class="modal-overlay" hidden>
+      <div class="modal-card">
+        <button id="historyClose" class="modal-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+        <h2>Saved conversations</h2>
+        <div id="historyList" class="history-list"></div>
       </div>
     </div>
 

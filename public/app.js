@@ -26,6 +26,14 @@ const stopBtn = $("stopBtn");
 const scrollBtn = $("scrollBtn");
 const streakBar = $("streakBar");
 const streakText = $("streakText");
+const goalBar = $("goalBar");
+const goalFill = $("goalFill");
+const goalText = $("goalText");
+const partnerNameInput = $("partnerName");
+const taglineEl = $("tagline");
+const modelSwitch = $("modelSwitch");
+const drillBtn = $("drillBtn");
+const historyBtn = $("historyBtn");
 
 // Review modal
 const reviewOverlay = $("reviewOverlay");
@@ -34,6 +42,20 @@ const reviewStats = $("reviewStats");
 const reviewBody = $("reviewBody");
 const reviewKeepGoing = $("reviewKeepGoing");
 const reviewNew = $("reviewNew");
+
+// Pronunciation drill modal
+const drillOverlay = $("drillOverlay");
+const drillClose = $("drillClose");
+const drillPhrase = $("drillPhrase");
+const drillHear = $("drillHear");
+const drillSpeak = $("drillSpeak");
+const drillResult = $("drillResult");
+const drillNext = $("drillNext");
+
+// History modal
+const historyOverlay = $("historyOverlay");
+const historyClose = $("historyClose");
+const historyList = $("historyList");
 
 // Setup / loading elements
 const setupEl = $("setup");
@@ -52,9 +74,20 @@ const controls = {
   corrections: $("corrections"),
   length: $("length"),
   scenario: $("scenario"),
+  partnerName: $("partnerName"),
+  dailyGoal: $("dailyGoal"),
   autoSpeak: $("autoSpeak"),
   autoListen: $("autoListen"),
 };
+
+// The partner's display name (defaults to "Maple"). Used in the prompt and UI.
+function partnerName() {
+  return (controls.partnerName.value || "").trim() || "Maple";
+}
+
+function updateTagline() {
+  if (taglineEl) taglineEl.textContent = `Talk with ${partnerName()} to practice your English.`;
+}
 
 // Curated small instruct models (verified against the WebLLM prebuilt list).
 // All support a system role. f16 = smaller/faster but needs a GPU with
@@ -82,6 +115,7 @@ let autoRestartTimer = null;
 
 let engine = null;
 let loadingModel = false;
+let loadedModelId = null;
 let supportsF16 = false;
 
 // Bumped whenever an in-flight reply should be discarded (e.g. the user resets
@@ -308,15 +342,16 @@ const LENGTHS = {
 };
 
 function buildSystemPrompt() {
+  const name = partnerName();
   const level = LEVELS[controls.level.value] || LEVELS.intermediate;
   const style = STYLES[controls.style.value] || STYLES.friendly;
   const corr = CORRECTIONS[controls.corrections.value] || CORRECTIONS.gentle;
   const length = LENGTHS[controls.length?.value] || LENGTHS.medium;
   const scenario = controls.scenario.value
-    ? `\nTODAY'S SCENARIO: ${controls.scenario.value}. Stay in this scenario and play your role.`
+    ? `\nTODAY'S SCENARIO: ${controls.scenario.value}. Stay in this scenario and play your role. When the learner has clearly accomplished the scenario's goal, congratulate them warmly and add the exact tag [GOAL DONE] at the very end of that reply.`
     : "";
 
-  return `You are "Maple", a friendly conversation partner helping someone practice spoken English. Your reply is read aloud, and the learner answers by speaking.
+  return `You are "${name}", a friendly conversation partner helping someone practice spoken English. Your reply is read aloud, and the learner answers by speaking.
 
 Keep the learner talking — that is how they improve.
 
@@ -331,7 +366,7 @@ RULES:
 - Ask only ONE question per reply, and make it a NEW question — never re-ask something you already asked.
 - Vary how you open each reply; don't start consecutive replies the same way.
 - Sound like a real person speaking. Use plain spoken sentences with no markdown, lists, code, or emoji (the feedback note is the only exception).
-- Never say you are an AI. You are just Maple.
+- Never say you are an AI. You are just ${name}.
 - Reply only with what you would say out loud.${scenario}`;
 }
 
@@ -385,6 +420,7 @@ async function loadModel() {
         progressText.textContent = report.text || `${pct}%`;
       },
     });
+    loadedModelId = modelId;
     saveSettings();
     finishSetup();
   } catch (err) {
@@ -406,7 +442,10 @@ async function loadModel() {
 function finishSetup() {
   setupEl.hidden = true;
   controlsEl.hidden = false;
+  populateModelSwitch();
+  updateTagline();
   renderStreak();
+  renderGoal();
   if (restoreSession()) {
     renderRestored();
   } else {
@@ -446,15 +485,19 @@ function getSelectedVoice() {
 // ---- Speaking (TTS) --------------------------------------------------------
 
 function splitReply(text) {
+  // Detect and strip the scenario-complete tag so it never appears or is spoken.
+  const goalDone = /\[GOAL DONE\]/i.test(text);
+  text = text.replace(/\[GOAL DONE\]/gi, "").trim();
+
   const idx = text.search(/\n-{2,}\s*\n?\s*📝|\n?📝\s*Feedback/i);
-  if (idx === -1) return { spoken: text.trim(), feedback: null };
+  if (idx === -1) return { spoken: text.trim(), feedback: null, goalDone };
   const spoken = text.slice(0, idx).trim();
   const feedback = text
     .slice(idx)
     .replace(/^\s*\n?-{2,}\s*\n?/, "")
     .replace(/^\n?📝\s*Feedback:?\s*/i, "")
     .trim();
-  return { spoken, feedback };
+  return { spoken, feedback, goalDone };
 }
 
 function speak(text, onEnd) {
@@ -506,18 +549,26 @@ function clearWelcome() {
 }
 
 function showWelcome() {
-  chatEl.innerHTML = `
-    <div class="welcome">
-      <h2>Hi, I'm Maple 🍁</h2>
-      <p>Tap the microphone and just start talking — about your day, your plans,
-      anything. I'll chat back and gently help your English along the way.</p>
-      <p style="margin-top:14px;font-size:13px">Not sure what to say? Pick one:</p>
-      <div class="starters" id="starters"></div>
-    </div>`;
+  const name = partnerName();
+  const welcome = document.createElement("div");
+  welcome.className = "welcome";
+  const h2 = document.createElement("h2");
+  h2.textContent = `Hi, I'm ${name} 🍁`;
+  const p1 = document.createElement("p");
+  p1.textContent =
+    "Tap the microphone and just start talking — about your day, your plans, anything. I'll chat back and gently help your English along the way.";
+  const p2 = document.createElement("p");
+  p2.style.cssText = "margin-top:14px;font-size:13px";
+  p2.textContent = "Not sure what to say? Pick one:";
+  const wrap = document.createElement("div");
+  wrap.className = "starters";
+  wrap.id = "starters";
+  welcome.append(h2, p1, p2, wrap);
+  chatEl.innerHTML = "";
+  chatEl.appendChild(welcome);
 
   // Show three random conversation starters.
   const pool = [...STARTERS].sort(() => Math.random() - 0.5).slice(0, 3);
-  const wrap = $("starters");
   for (const text of pool) {
     const btn = document.createElement("button");
     btn.className = "starter";
@@ -743,7 +794,8 @@ async function sendToMaple() {
     saveSession();
     renderMapleMessage(typingEl, fullText);
 
-    const { spoken } = splitReply(fullText);
+    const { spoken, goalDone } = splitReply(fullText);
+    if (goalDone) celebrateGoal();
     speak(spoken || fullText, (interrupted) => {
       // After Maple finishes speaking, listen again automatically when either
       // hands-free auto mode or the auto-listen toggle is on. Skip if the user
@@ -780,7 +832,58 @@ function handleUserUtterance(text) {
   messages.push({ role: "user", content: clean });
   saveSession();
   markPracticedToday();
+  bumpDailyGoal();
   sendToMaple();
+}
+
+// ---- Daily goal ------------------------------------------------------------
+
+const GOAL_KEY = "maple-speak-goal";
+
+function readGoal() {
+  try {
+    return JSON.parse(localStorage.getItem(GOAL_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+// Count one spoken/typed turn toward today's goal.
+function bumpDailyGoal() {
+  const target = parseInt(controls.dailyGoal.value, 10) || 0;
+  if (!target) return;
+  const today = todayStamp();
+  let g = readGoal();
+  if (!g || g.day !== today) g = { day: today, count: 0, celebrated: false };
+  g.count += 1;
+  const justHit = !g.celebrated && g.count >= target;
+  if (justHit) g.celebrated = true;
+  localStorage.setItem(GOAL_KEY, JSON.stringify(g));
+  renderGoal();
+  if (justHit) celebrateGoalReached(target);
+}
+
+function renderGoal() {
+  const target = parseInt(controls.dailyGoal.value, 10) || 0;
+  if (!target) {
+    goalBar.hidden = true;
+    return;
+  }
+  const today = todayStamp();
+  let g = readGoal();
+  if (!g || g.day !== today) g = { day: today, count: 0 };
+  const pct = Math.min(100, Math.round((g.count / target) * 100));
+  goalFill.style.width = `${pct}%`;
+  goalText.textContent =
+    g.count >= target
+      ? `🎯 Daily goal reached — ${g.count}/${target} turns. Amazing!`
+      : `🎯 Today's goal: ${g.count}/${target} turns`;
+  goalBar.hidden = false;
+}
+
+function celebrateGoalReached(target) {
+  burstConfetti();
+  toast(`🎉 Daily goal reached — ${target} turns! Keep going if you like.`);
 }
 
 // ---- Speech recognition ----------------------------------------------------
@@ -1057,6 +1160,352 @@ function closeReview() {
   reviewOverlay.hidden = true;
 }
 
+// ---- Celebrations (confetti + toast) ---------------------------------------
+
+function toast(msg) {
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  // Force reflow so the entry transition runs, then schedule removal.
+  requestAnimationFrame(() => t.classList.add("show"));
+  setTimeout(() => {
+    t.classList.remove("show");
+    setTimeout(() => t.remove(), 400);
+  }, 3200);
+}
+
+function burstConfetti() {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const colors = ["#c2541f", "#2f6d5b", "#e8a13a", "#d4632b", "#6cc3a8"];
+  const layer = document.createElement("div");
+  layer.className = "confetti";
+  for (let i = 0; i < 28; i++) {
+    const p = document.createElement("i");
+    p.style.left = Math.random() * 100 + "vw";
+    p.style.background = colors[i % colors.length];
+    p.style.animationDelay = Math.random() * 0.3 + "s";
+    p.style.transform = `rotate(${Math.random() * 360}deg)`;
+    layer.appendChild(p);
+  }
+  document.body.appendChild(layer);
+  setTimeout(() => layer.remove(), 2600);
+}
+
+// Scenario goal reached (roleplay).
+function celebrateGoal() {
+  burstConfetti();
+  toast("🎉 Scenario complete — nicely done!");
+}
+
+// ---- Saved conversations (history) -----------------------------------------
+
+const HISTORY_KEY = "maple-speak-history";
+const MAX_HISTORY = 20;
+
+function readHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+// Archive the current conversation into history (called before clearing it).
+function archiveCurrent() {
+  if (!messages.length) return;
+  const firstUser = messages.find((m) => m.role === "user");
+  const title = firstUser
+    ? firstUser.content.slice(0, 40) + (firstUser.content.length > 40 ? "…" : "")
+    : "Conversation";
+  const entry = {
+    id: Date.now(),
+    title,
+    when: Date.now(),
+    scenario: controls.scenario.value || "",
+    messages: messages.slice(-MAX_STORED_MESSAGES),
+    tricky: [...trickyWords.entries()].slice(-200),
+  };
+  const list = readHistory();
+  list.unshift(entry);
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(list.slice(0, MAX_HISTORY)));
+  } catch {
+    /* storage full — drop silently */
+  }
+}
+
+function timeAgo(ts) {
+  const mins = Math.round((Date.now() - ts) / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.round(hrs / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+function openHistory() {
+  const list = readHistory();
+  historyList.innerHTML = "";
+  if (!list.length) {
+    historyList.innerHTML = `<p class="review-empty">No saved conversations yet.
+      When you start a new session, the previous one is saved here so you can
+      revisit it.</p>`;
+  } else {
+    for (const entry of list) {
+      const row = document.createElement("div");
+      row.className = "history-item";
+      const info = document.createElement("button");
+      info.className = "history-open";
+      info.innerHTML = `<span class="history-title"></span><span class="history-meta"></span>`;
+      info.querySelector(".history-title").textContent = entry.title;
+      info.querySelector(".history-meta").textContent =
+        `${entry.messages.filter((m) => m.role === "user").length} turns · ${timeAgo(entry.when)}`;
+      info.onclick = () => loadHistory(entry.id);
+      const del = document.createElement("button");
+      del.className = "history-del";
+      del.setAttribute("aria-label", "Delete");
+      del.innerHTML =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>';
+      del.onclick = (e) => {
+        e.stopPropagation();
+        deleteHistory(entry.id);
+      };
+      row.appendChild(info);
+      row.appendChild(del);
+      historyList.appendChild(row);
+    }
+  }
+  historyOverlay.hidden = false;
+}
+
+function loadHistory(id) {
+  const entry = readHistory().find((e) => e.id === id);
+  if (!entry) return;
+  // Save whatever's open now, then load the chosen one.
+  archiveCurrent();
+  generation++;
+  busy = false;
+  micBtn.classList.remove("thinking");
+  messages = entry.messages.slice();
+  trickyWords = new Map(entry.tricky || []);
+  if (entry.scenario !== undefined) {
+    controls.scenario.value = entry.scenario;
+    saveSettings();
+  }
+  saveSession();
+  renderRestored();
+  historyOverlay.hidden = true;
+}
+
+function deleteHistory(id) {
+  const list = readHistory().filter((e) => e.id !== id);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+  openHistory(); // re-render
+}
+
+// ---- Pronunciation practice (drill) ----------------------------------------
+
+const DRILL_PHRASES = [
+  "The weather is beautiful today.",
+  "I would like a cup of coffee, please.",
+  "She sells seashells by the seashore.",
+  "Could you tell me how to get to the station?",
+  "Thank you so much for your help.",
+  "I really enjoy learning new things.",
+  "What time does the next train leave?",
+  "It was lovely to meet you.",
+  "My favorite season is autumn.",
+  "Practice makes perfect.",
+  "Three free throws for the win.",
+  "Can I have the bill, please?",
+  "I'm looking forward to the weekend.",
+  "The quick brown fox jumps over the lazy dog.",
+  "Please speak a little more slowly.",
+];
+let drillCurrent = "";
+let drillRec = null; // a dedicated recognizer for the drill
+
+function normalizePhrase(s) {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z'\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+// Word-overlap score between the target phrase and what was heard (0–100).
+function scoreAttempt(target, heard) {
+  const t = normalizePhrase(target);
+  const h = new Set(normalizePhrase(heard));
+  if (!t.length) return 0;
+  const hit = t.filter((w) => h.has(w)).length;
+  return Math.round((hit / t.length) * 100);
+}
+
+function pickDrillPhrase() {
+  // Prefer the learner's own tricky words if we have a phrase containing one.
+  const tricky = [...trickyWords.keys()];
+  let pool = DRILL_PHRASES;
+  if (tricky.length) {
+    const matched = DRILL_PHRASES.filter((p) => {
+      const words = normalizePhrase(p);
+      return tricky.some((t) => words.includes(t));
+    });
+    if (matched.length) pool = matched;
+  }
+  let next = pool[Math.floor(Math.random() * pool.length)];
+  if (next === drillCurrent && pool.length > 1) return pickDrillPhrase();
+  return next;
+}
+
+function newDrillPhrase() {
+  drillCurrent = pickDrillPhrase();
+  drillPhrase.textContent = drillCurrent;
+  drillResult.hidden = true;
+  drillResult.innerHTML = "";
+  drillNext.hidden = true;
+}
+
+function openDrill() {
+  if (!recognition) {
+    toast("Speech recognition isn't available in this browser.");
+    return;
+  }
+  // Pause the conversation flow so the two recognizers never collide.
+  endAutoMode();
+  stopListening();
+  synth?.cancel();
+  settingsEl.hidden = true;
+  newDrillPhrase();
+  drillOverlay.hidden = false;
+}
+
+function closeDrill() {
+  try {
+    drillRec?.stop();
+  } catch {
+    /* ignore */
+  }
+  synth?.cancel();
+  drillOverlay.hidden = true;
+}
+
+function drillListen() {
+  if (!SpeechRecognition) return;
+  synth?.cancel();
+  // Use a fresh recognizer so it never collides with the main conversation one.
+  drillRec = new SpeechRecognition();
+  drillRec.lang = "en-US";
+  drillRec.interimResults = false;
+  drillRec.continuous = false;
+
+  drillSpeak.textContent = "Listening…";
+  drillSpeak.disabled = true;
+
+  let heard = "";
+  drillRec.onresult = (e) => {
+    for (let i = 0; i < e.results.length; i++) heard += e.results[i][0].transcript;
+  };
+  drillRec.onerror = () => {};
+  drillRec.onend = () => {
+    drillSpeak.textContent = "Tap & say it";
+    drillSpeak.disabled = false;
+    showDrillResult(heard.trim());
+  };
+  try {
+    drillRec.start();
+  } catch {
+    drillSpeak.textContent = "Tap & say it";
+    drillSpeak.disabled = false;
+  }
+}
+
+function showDrillResult(heard) {
+  const score = heard ? scoreAttempt(drillCurrent, heard) : 0;
+  let verdict, cls;
+  if (score >= 85) {
+    verdict = "Excellent! 🎉";
+    cls = "great";
+    burstConfetti();
+  } else if (score >= 60) {
+    verdict = "Good — close! Try once more for clarity.";
+    cls = "ok";
+  } else {
+    verdict = heard ? "Keep practicing — try a bit slower." : "I didn't catch that — try again.";
+    cls = "low";
+  }
+  drillResult.className = `drill-result ${cls}`;
+  drillResult.innerHTML = `
+    <div class="drill-score">${score}<span>%</span></div>
+    <div class="drill-verdict">${verdict}</div>
+    ${heard ? `<div class="drill-heard">I heard: “${heard}”</div>` : ""}`;
+  drillResult.hidden = false;
+  drillNext.hidden = false;
+}
+
+// ---- Model switching (load a different model later) ------------------------
+
+function populateModelSwitch() {
+  modelSwitch.innerHTML = "";
+  for (const m of MODELS) {
+    const opt = document.createElement("option");
+    opt.value = m.id;
+    opt.textContent = m.label;
+    modelSwitch.appendChild(opt);
+  }
+  if (loadedModelId) modelSwitch.value = loadedModelId;
+}
+
+async function switchModel() {
+  const target = modelSwitch.value;
+  if (!target || target === loadedModelId || loadingModel) return;
+  if (
+    !confirm(
+      "Switch the AI model? This downloads the new model the first time " +
+        "(it's cached afterward). Your current chat is kept.",
+    )
+  ) {
+    modelSwitch.value = loadedModelId || target;
+    return;
+  }
+  loadingModel = true;
+  settingsEl.hidden = true;
+  setupEl.hidden = false;
+  setupReady.hidden = true;
+  setupError.hidden = true;
+  setupProgress.hidden = false;
+  barFill.style.width = "0%";
+  progressText.textContent = "Switching model…";
+  try {
+    engine = await webllm.CreateMLCEngine(target, {
+      initProgressCallback: (report) => {
+        const pct = Math.round((report.progress || 0) * 100);
+        barFill.style.width = `${pct}%`;
+        progressText.textContent = report.text || `${pct}%`;
+      },
+    });
+    loadedModelId = target;
+    modelSelect.value = target;
+    saveSettings();
+    setupEl.hidden = true;
+    toast("Model switched ✓");
+  } catch (err) {
+    console.error("Model switch failed:", err);
+    setupProgress.hidden = true;
+    setupReady.hidden = false;
+    setupError.hidden = false;
+    setupError.innerHTML =
+      "<p>Couldn't switch model. Your previous model is still active.</p>";
+    setTimeout(() => {
+      setupEl.hidden = true;
+    }, 2500);
+  } finally {
+    loadingModel = false;
+  }
+}
+
 // ---- UI wiring -------------------------------------------------------------
 
 loadBtn.addEventListener("click", loadModel);
@@ -1100,15 +1549,20 @@ function endAutoMode() {
   reflectAutoMode();
 }
 
-resetBtn.addEventListener("click", () => {
-  if (messages.length && !confirm("Start a new session? This clears the current chat.")) {
-    return;
-  }
+function startNewSession() {
   endAutoMode();
   synth?.cancel();
   stopListening();
+  archiveCurrent(); // save the finished conversation to history
   clearSession();
   showWelcome();
+}
+
+resetBtn.addEventListener("click", () => {
+  if (messages.length && !confirm("Start a new session? The current chat is saved to your history.")) {
+    return;
+  }
+  startNewSession();
 });
 
 reviewBtn.addEventListener("click", openReview);
@@ -1116,21 +1570,46 @@ reviewClose.addEventListener("click", closeReview);
 reviewKeepGoing.addEventListener("click", closeReview);
 reviewNew.addEventListener("click", () => {
   closeReview();
-  endAutoMode();
-  synth?.cancel();
-  stopListening();
-  clearSession();
-  showWelcome();
+  startNewSession();
 });
 reviewOverlay.addEventListener("click", (e) => {
   if (e.target === reviewOverlay) closeReview();
 });
 
+// Pronunciation drill
+drillBtn.addEventListener("click", openDrill);
+drillClose.addEventListener("click", closeDrill);
+drillHear.addEventListener("click", () => speakWord(drillCurrent));
+drillSpeak.addEventListener("click", drillListen);
+drillNext.addEventListener("click", newDrillPhrase);
+drillOverlay.addEventListener("click", (e) => {
+  if (e.target === drillOverlay) closeDrill();
+});
+
+// Saved conversations
+historyBtn.addEventListener("click", openHistory);
+historyClose.addEventListener("click", () => (historyOverlay.hidden = true));
+historyOverlay.addEventListener("click", (e) => {
+  if (e.target === historyOverlay) historyOverlay.hidden = true;
+});
+
+// Model switching
+modelSwitch.addEventListener("change", switchModel);
+
 settingsToggle.addEventListener("click", () => {
   settingsEl.hidden = !settingsEl.hidden;
 });
 
-for (const el of Object.values(controls)) el.addEventListener("change", saveSettings);
+for (const el of Object.values(controls)) {
+  el.addEventListener("change", saveSettings);
+}
+// Re-render goal bar live when the daily-goal target changes.
+controls.dailyGoal.addEventListener("change", renderGoal);
+// Live-update the partner name in the header tagline as you type.
+partnerNameInput.addEventListener("input", () => {
+  updateTagline();
+  saveSettings();
+});
 voiceSelect.addEventListener("change", saveSettings);
 modelSelect.addEventListener("change", saveSettings);
 rateSlider.addEventListener("input", () => {

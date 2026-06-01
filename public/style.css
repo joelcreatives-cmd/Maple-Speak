@@ -352,6 +352,268 @@ svg {
   cursor: pointer;
 }
 
+.setting input[type="text"] {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+  transition: border-color 0.12s var(--ease);
+}
+.setting input[type="text"]:focus-visible {
+  border-color: var(--maple);
+  outline: none;
+}
+
+/* Full-width action buttons inside the settings panel */
+.setting--full {
+  grid-column: 1 / -1;
+}
+.setting-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: 13px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.12s var(--ease), border-color 0.12s var(--ease);
+}
+.setting-action svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (hover: hover) {
+  .setting-action:hover {
+    background: var(--maple-soft);
+    border-color: var(--maple-soft);
+  }
+}
+.setting-action:active {
+  transform: scale(0.98);
+}
+
+/* ---- Daily goal bar --------------------------------------------------- */
+.goal-bar {
+  align-self: center;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.goal-track {
+  flex: 1;
+  height: 8px;
+  background: var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.goal-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--user), #4f9a82);
+  border-radius: 999px;
+  transition: width 0.4s var(--ease);
+}
+.goal-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ---- Toast + confetti ------------------------------------------------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(96px + var(--safe-b));
+  transform: translate(-50%, 16px);
+  max-width: calc(100% - 32px);
+  background: var(--ink);
+  color: var(--bg);
+  padding: 12px 18px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+  z-index: 80;
+  text-align: center;
+}
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 90;
+}
+.confetti i {
+  position: absolute;
+  top: -12px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation: confetti-fall 2.4s linear forwards;
+}
+@keyframes confetti-fall {
+  to {
+    transform: translateY(105vh) rotate(540deg);
+    opacity: 0.9;
+  }
+}
+
+/* ---- Pronunciation drill --------------------------------------------- */
+.drill-prompt-label {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 4px 0 8px;
+}
+.drill-phrase {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 22px;
+  line-height: 1.35;
+  color: var(--ink);
+  margin: 0 0 20px;
+}
+.drill-actions {
+  display: flex;
+  gap: 10px;
+}
+.drill-actions .ghost-btn,
+.drill-actions .setup-btn {
+  margin: 0;
+  flex: 1;
+}
+.drill-result {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.drill-result.great {
+  background: var(--user-soft);
+  border-color: var(--user-line);
+}
+.drill-result.low {
+  background: #fdecea;
+  border-color: #f1c4bc;
+}
+.drill-score {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--maple);
+  line-height: 1;
+}
+.drill-score span {
+  font-size: 20px;
+}
+.drill-verdict {
+  font-weight: 700;
+  margin-top: 6px;
+  color: var(--ink);
+}
+.drill-heard {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 8px;
+  font-style: italic;
+}
+.drill-next {
+  margin: 16px 0 0;
+  width: 100%;
+}
+
+/* ---- Saved conversations --------------------------------------------- */
+.history-list {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.history-item {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.history-open {
+  flex: 1;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: background 0.12s var(--ease);
+}
+@media (hover: hover) {
+  .history-open:hover {
+    background: var(--maple-soft);
+  }
+}
+.history-title {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: 15px;
+}
+.history-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+.history-del {
+  flex: none;
+  width: 44px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+}
+.history-del svg {
+  width: 18px;
+  height: 18px;
+  margin: 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+@media (hover: hover) {
+  .history-del:hover {
+    background: #fdecea;
+    color: #9a3b29;
+  }
+}
+
 /* ---- Streak banner ---------------------------------------------------- */
 .streak-bar {
   align-self: center;

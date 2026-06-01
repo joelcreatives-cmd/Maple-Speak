@@ -38,6 +38,17 @@ completely:
 - 💬 **Help me reply** — stuck for words? Tap it on any reply and Maple suggests a
   few natural things you could say; tap one to send it, or use it as inspiration.
 - 📏 **Reply length** — choose Short, Medium, or Longer replies to match your level.
+- 🗣️ **Pronunciation practice** — a drill mode that gives you a phrase to say, then
+  scores how clearly the speech recognizer understood you (with confetti for great
+  ones). It favors phrases with words you've found tricky.
+- 🎭 **Roleplay goals** — pick a scenario (café, interview, travel…) and Maple
+  celebrates when you complete the task.
+- 🎯 **Daily goal** — set a target number of turns; a progress bar tracks it and
+  celebrates when you hit it.
+- 🗂️ **Saved conversations** — past sessions are kept so you can revisit or delete
+  them anytime.
+- 🧑‍🎨 **Name your partner** — call them anything you like, not just "Maple".
+- 🔄 **Switch AI model anytime** — change models from settings without reloading.
 - 🐢 **Adjustable speaking speed** — slow Maple's voice down or speed it up.
 - ⏹️ **Stop button** — interrupt Maple mid-sentence whenever you want.
 - 🔥 **Daily streak** — a gentle nudge that counts the days you practice in a row.
