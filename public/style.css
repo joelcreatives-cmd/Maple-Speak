@@ -227,6 +227,39 @@ h1 {
   transform: scale(0.92);
 }
 
+/* ---- Flat line icons (inherit color + sizing via currentColor) -------- */
+svg {
+  display: block;
+}
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+}
+.icon-btn svg,
+.mic svg,
+.scroll-fab svg,
+.modal-close svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mic svg {
+  width: 28px;
+  height: 28px;
+}
+.scroll-fab svg {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+}
+.modal-close svg {
+  width: 17px;
+  height: 17px;
+  margin: 0 auto;
+}
+
 /* Active state for toggle icon buttons (hands-free auto mode) */
 .icon-btn.active {
   background: var(--maple);
@@ -1081,14 +1114,18 @@ h1 {
   .icon-btn {
     width: 42px;
     height: 42px;
-    font-size: 18px;
+  }
+  .icon-btn svg {
+    width: 20px;
+    height: 20px;
   }
   .mic {
     width: 58px;
     height: 58px;
   }
-  .mic .mic-icon {
-    font-size: 26px;
+  .mic svg {
+    width: 26px;
+    height: 26px;
   }
 }
 

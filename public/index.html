@@ -31,7 +31,7 @@
           </div>
         </div>
         <button id="settingsToggle" class="icon-btn" aria-label="Settings" title="Settings">
-          ⚙️
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
       </header>
 
@@ -97,14 +97,14 @@
       <main id="chat" class="chat" aria-live="polite"></main>
 
       <button id="scrollBtn" class="scroll-fab" aria-label="Scroll to latest" hidden>
-        ↓
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
       </button>
 
       <div id="interim" class="interim" aria-live="polite" hidden></div>
 
       <footer class="controls" hidden>
         <button id="textToggle" class="icon-btn" title="Type instead" aria-label="Type a message">
-          ⌨️
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M18 14h.01M9 14h6"/></svg>
         </button>
         <button
           id="autoBtn"
@@ -113,20 +113,22 @@
           aria-label="Toggle hands-free auto mode"
           aria-pressed="false"
         >
-          🔁
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 2.1l4 4-4 4"/><path d="M3 12.95v-1a4 4 0 0 1 4-4h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.05v1a4 4 0 0 1-4 4H3"/></svg>
         </button>
         <button id="micBtn" class="mic" title="Tap to speak" aria-label="Tap to speak">
-          <span class="mic-icon">🎙️</span>
+          <span class="mic-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><path d="M12 18v4M8 22h8"/></svg>
+          </span>
           <span class="mic-label">Tap to speak</span>
         </button>
         <button id="stopBtn" class="icon-btn" title="Stop Maple speaking" aria-label="Stop Maple speaking" hidden>
-          ⏹️
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
         </button>
         <button id="reviewBtn" class="icon-btn" title="Review this session" aria-label="Review this session">
-          📊
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></svg>
         </button>
         <button id="resetBtn" class="icon-btn" title="Start over" aria-label="Start over">
-          ↺
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 2v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L3 8"/></svg>
         </button>
       </footer>
 
@@ -144,7 +146,9 @@
     <!-- End-of-session review -->
     <div id="reviewOverlay" class="modal-overlay" hidden>
       <div class="modal-card">
-        <button id="reviewClose" class="modal-close" aria-label="Close">✕</button>
+        <button id="reviewClose" class="modal-close" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
         <span class="leaf big">🍁</span>
         <h2>Your speaking session</h2>
         <div id="reviewStats" class="review-stats"></div>
