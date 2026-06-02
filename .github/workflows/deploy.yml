@@ -24,6 +24,9 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Only the repo's default branch may deploy to the Pages environment;
+    # runs on other branches skip cleanly instead of failing.
+    if: github.ref_name == github.event.repository.default_branch
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
