@@ -178,12 +178,13 @@ button {
   filter: drop-shadow(0 2px 4px rgba(194, 84, 31, 0.25));
 }
 
-/* When a custom brand photo (logo.png) is present, render it as a round mark. */
+/* When a custom brand photo (logo.png) is present, render it as a rounded
+   square (a circle clips a husky's wide ears). */
 .leaf.logo-photo {
   display: inline-block;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 28%;
   overflow: hidden;
   filter: none;
   background: var(--surface);
@@ -191,15 +192,15 @@ button {
   flex: none;
 }
 .leaf.big.logo-photo {
-  width: 78px;
-  height: 78px;
+  width: 82px;
+  height: 82px;
   box-shadow: var(--shadow), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 .leaf.logo-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center bottom;
+  object-position: center;
   display: block;
 }
 
