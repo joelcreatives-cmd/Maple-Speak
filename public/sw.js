@@ -2,7 +2,7 @@
 // works offline. The AI model itself is cached separately by WebLLM in the
 // browser's storage, so once everything is loaded, Maple works with no network.
 
-const CACHE = "maple-speak-v12";
+const CACHE = "maple-speak-v13";
 const SHELL = [
   "./",
   "./index.html",
@@ -10,6 +10,10 @@ const SHELL = [
   "./app.js",
   "./manifest.webmanifest",
   "./icon.svg",
+  "./logo.png",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {
