@@ -1,8 +1,8 @@
-// Maple Speak service worker — caches the app shell so it loads instantly and
-// works offline. The AI model itself is cached separately by WebLLM in the
-// browser's storage, so once everything is loaded, Maple works with no network.
+// Maple Speak service worker — keeps the app working offline while always
+// preferring the freshest version when online. The AI model itself is cached
+// separately by WebLLM in the browser's storage.
 
-const CACHE = "maple-speak-v14";
+const CACHE = "maple-speak-v15";
 const SHELL = [
   "./",
   "./index.html",
@@ -38,22 +38,22 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  // Only handle our own same-origin app-shell files here. Let everything else
+  // Only handle our own same-origin app-shell files. Let everything else
   // (fonts, the WebLLM CDN, model weights) go straight to the network so we
   // never interfere with how WebLLM caches large model files.
   if (url.origin !== self.location.origin) return;
 
+  // Network-first: always try the live version, fall back to cache offline.
+  // This guarantees users get updates immediately instead of being stuck on a
+  // stale cached app, while still working with no connection.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request)
-        .then((resp) => {
-          // Cache new same-origin GETs as we see them.
-          const copy = resp.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
-          return resp;
-        })
-        .catch(() => cached);
-    }),
+    fetch(request)
+      .then((resp) => {
+        const copy = resp.clone();
+        caches.open(CACHE).then((cache) => cache.put(request, copy)).catch(() => {});
+        return resp;
+      })
+      .catch(() => caches.match(request)),
   );
 });
+
