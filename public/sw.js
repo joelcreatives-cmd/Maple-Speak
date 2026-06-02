@@ -2,7 +2,7 @@
 // preferring the freshest version when online. The AI model itself is cached
 // separately by WebLLM in the browser's storage.
 
-const CACHE = "maple-speak-v17";
+const CACHE = "maple-speak-v18";
 const SHELL = [
   "./",
   "./index.html",
