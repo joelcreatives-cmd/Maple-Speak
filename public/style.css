@@ -178,6 +178,29 @@ button {
   filter: drop-shadow(0 2px 4px rgba(194, 84, 31, 0.25));
 }
 
+/* When a custom brand photo (logo.jpg) is present, render it as a round mark. */
+.leaf.logo-photo {
+  display: inline-block;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  overflow: hidden;
+  filter: none;
+  box-shadow: var(--shadow-sm);
+  flex: none;
+}
+.leaf.big.logo-photo {
+  width: 78px;
+  height: 78px;
+  box-shadow: var(--shadow);
+}
+.leaf.logo-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 h1 {
   font-family: "Fraunces", Georgia, serif;
   font-size: clamp(22px, 6vw, 27px);

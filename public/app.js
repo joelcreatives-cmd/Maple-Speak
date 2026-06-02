@@ -1631,8 +1631,38 @@ textForm.addEventListener("submit", (e) => {
 
 // ---- Init ------------------------------------------------------------------
 
+// If a custom brand logo exists, use it everywhere the 🍁 leaf appears
+// (header + setup + review). Prefers a transparent PNG (logo.png), then a
+// JPG (logo.jpg). Falls back silently to the leaf emoji if neither is present,
+// so nothing ever shows a broken image.
+function applyCustomLogo() {
+  const tryLoad = (src, next) => {
+    const probe = new Image();
+    probe.onload = () => useLogo(src);
+    probe.onerror = next || null;
+    probe.src = src;
+  };
+  const useLogo = (src) => {
+    document.querySelectorAll(".leaf").forEach((el) => {
+      el.textContent = "";
+      el.classList.add("logo-photo");
+      const im = document.createElement("img");
+      im.src = src;
+      im.alt = "Maple Speak";
+      el.appendChild(im);
+    });
+    const fav = document.querySelector('link[rel="icon"]');
+    if (fav) fav.href = src;
+    const apple = document.querySelector('link[rel="apple-touch-icon"]');
+    if (apple) apple.href = src;
+  };
+  // Prefer logo.png (transparent), then logo.jpg.
+  tryLoad("logo.png", () => tryLoad("logo.jpg"));
+}
+
 async function init() {
   loadSettings();
+  applyCustomLogo();
   setupRecognition();
 
   const hasWebGPU = await detectWebGPU();
