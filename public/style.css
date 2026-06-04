@@ -1,53 +1,76 @@
 /* ============================================================
-   Maple Speak — design system
-   Warm, editorial, modern. Mobile-first. Light + dark themes.
+   Maple Speak — "Cozy Café" design system
+   Warm paper, espresso ink, maple rust, hand-drawn doodles &
+   washi-tape details. Handmade, analog, inviting.
+   Mobile-first. Light + dark themes.
    ============================================================ */
 
 :root {
-  /* Surfaces & ink */
-  --bg: #f4f1ea;
-  --bg-soft: #faf6ef;
-  --surface: #fffdf8;
-  --surface-2: #f1ece2;
-  --ink: #2c2a26;
-  --muted: #8a8377;
-  --line: #e7e0d4;
+  /* Surfaces & ink — warm cream "paper", espresso ink */
+  --bg: #f1e7d3;
+  --bg-soft: #f8efdd;
+  --surface: #fffaf0;
+  --surface-2: #efe2cb;
+  --ink: #3b2e22;
+  --muted: #756656; /* AA-contrast warm taupe on the cream paper */
+  --line: #e4d6bd;
+  --line-strong: #cdb894;
 
-  /* Brand (maple) */
-  --maple: #c2541f;
-  --maple-strong: #aa4516;
-  --maple-soft: #f6e4d8;
-  --on-maple: #fffaf6;
+  /* Brand — maple rust (warm + a little deeper) */
+  --maple: #c0511c;
+  --maple-strong: #9e3f14;
+  --maple-soft: #f6e1cd;
+  --on-maple: #fff7ee;
 
-  /* Learner (green) */
-  --user: #2f6d5b;
-  --user-soft: #dceee7;
-  --user-line: #c8e2d8;
-  --user-ink: #235c4c;
+  /* Learner — warm pine/sage (cozy, not minty) */
+  --user: #5b7a4d;
+  --user-soft: #e6ecd6;
+  --user-line: #d2dcb9;
+  --user-ink: #3f5635;
 
-  /* Accent tints */
-  --feedback-bg: #fbf3df;
-  --feedback-line: #ecd9a8;
-  --feedback-ink: #6b5a2e;
-  --warn-bg: #fbf3df;
-  --warn-line: #ecd9a8;
-  --warn-ink: #7a5f1f;
-  --explain-bg: #eef5f1;
-  --explain-line: #cfe6db;
-  --explain-ink: #235c4c;
-  --notice-bg: #fff4e6;
-  --notice-line: #f0d2a8;
-  --notice-ink: #7a5320;
+  /* Accent tints — café palette */
+  --feedback-bg: #fbeed1;
+  --feedback-line: #ecd29a;
+  --feedback-ink: #6f561f;
+  --warn-bg: #fbeed1;
+  --warn-line: #ecd29a;
+  --warn-ink: #7a5d22;
+  --explain-bg: #e9efdc;
+  --explain-line: #d4dfbd;
+  --explain-ink: #3f5635;
+  --notice-bg: #fdeed7;
+  --notice-line: #f0cda0;
+  --notice-ink: #80541f;
 
-  /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(60, 50, 35, 0.06);
-  --shadow: 0 8px 30px rgba(60, 50, 35, 0.09);
-  --shadow-lg: 0 18px 50px rgba(60, 50, 35, 0.18);
-  --shadow-maple: 0 8px 22px rgba(194, 84, 31, 0.32);
+  /* Sticker / doodle accent set (for starter cards + decoration) */
+  --sticker-mustard: #f0cf7e;
+  --sticker-mustard-ink: #6f561f;
+  --sticker-sage: #cfe0b0;
+  --sticker-sage-ink: #3f5635;
+  --sticker-berry: #f0c2bd;
+  --sticker-berry-ink: #8a4036;
+  --sticker-sky: #c4d9e0;
+  --sticker-sky-ink: #355460;
 
-  /* Shape & motion */
-  --radius-sm: 12px;
-  --radius: 18px;
+  /* Washi tape + handwriting accent */
+  --tape: rgba(192, 81, 28, 0.16);
+  --tape-line: rgba(192, 81, 28, 0.28);
+  --hand: #b9531f;
+
+  /* Danger / error (theme-aware, used by delete hover, low score, setup error) */
+  --danger-bg: #fbe6e1;
+  --danger-line: #eebcb3;
+  --danger-ink: #97392a;
+
+  /* Elevation — soft, warm, like objects resting on a table */
+  --shadow-sm: 0 2px 4px rgba(74, 52, 30, 0.07);
+  --shadow: 0 10px 26px rgba(74, 52, 30, 0.12);
+  --shadow-lg: 0 20px 48px rgba(64, 42, 22, 0.2);
+  --shadow-maple: 0 10px 22px rgba(160, 64, 24, 0.3);
+
+  /* Shape & motion — soft, slightly organic radii */
+  --radius-sm: 13px;
+  --radius: 20px;
   --radius-lg: 26px;
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 
@@ -61,41 +84,60 @@
    so this single attribute selector drives dark mode — no media-query
    duplication and no flash of the wrong theme. */
 :root[data-theme="dark"] {
-    --bg: #1c1a17;
-    --bg-soft: #232019;
-    --surface: #2a261f;
-    --surface-2: #332e25;
-    --ink: #f0ebe1;
-    --muted: #a89f8f;
-    --line: #3d372d;
+    /* Candlelit café — warm dark browns, never cold grey */
+    --bg: #241c14;
+    --bg-soft: #2c2218;
+    --surface: #312619;
+    --surface-2: #3c2f20;
+    --ink: #f3e9d8;
+    --muted: #b6a487;
+    --line: #463827;
+    --line-strong: #5c4a33;
 
-    --maple: #e8763a;
-    --maple-strong: #d4632b;
-    --maple-soft: #3a2c22;
-    --on-maple: #fffaf6;
+    --maple: #e8843f;
+    --maple-strong: #d46f2c;
+    --maple-soft: #3e2c1c;
+    --on-maple: #2a1d10;
 
-    --user: #6cc3a8;
-    --user-soft: #243a33;
-    --user-line: #335247;
-    --user-ink: #aee3d2;
+    --user: #9cbb7e;
+    --user-soft: #2c3520;
+    --user-line: #44502f;
+    --user-ink: #c6dba6;
 
-    --feedback-bg: #352d1c;
-    --feedback-line: #4d4128;
-    --feedback-ink: #e6d7ab;
-    --warn-bg: #352d1c;
-    --warn-line: #4d4128;
-    --warn-ink: #e6d7ab;
-    --explain-bg: #213029;
-    --explain-line: #335247;
-    --explain-ink: #aee3d2;
-    --notice-bg: #3a2c1c;
-    --notice-line: #5a4326;
-    --notice-ink: #ecc999;
+    --feedback-bg: #3a2e18;
+    --feedback-line: #574425;
+    --feedback-ink: #ecd29a;
+    --warn-bg: #3a2e18;
+    --warn-line: #574425;
+    --warn-ink: #ecd29a;
+    --explain-bg: #2a3320;
+    --explain-line: #44502f;
+    --explain-ink: #c6dba6;
+    --notice-bg: #3c2c18;
+    --notice-line: #5c4426;
+    --notice-ink: #f0c489;
+
+    --sticker-mustard: #6b5526;
+    --sticker-mustard-ink: #f0d79a;
+    --sticker-sage: #3c4a2b;
+    --sticker-sage-ink: #cadfa8;
+    --sticker-berry: #533029;
+    --sticker-berry-ink: #f0bcb4;
+    --sticker-sky: #2f4650;
+    --sticker-sky-ink: #bdd9e2;
+
+    --tape: rgba(232, 132, 63, 0.18);
+    --tape-line: rgba(232, 132, 63, 0.32);
+    --hand: #e8843f;
+
+    --danger-bg: #3a211c;
+    --danger-line: #6b362c;
+    --danger-ink: #f0b3a6;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.55);
-    --shadow-maple: 0 8px 22px rgba(232, 118, 58, 0.3);
+    --shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.6);
+    --shadow-maple: 0 10px 22px rgba(0, 0, 0, 0.45);
 }
 
 * {
@@ -116,18 +158,43 @@ body {
 }
 
 body {
+  position: relative;
   background: var(--bg);
   background-image: radial-gradient(
-    120% 80% at 50% -10%,
+    120% 80% at 50% -8%,
     var(--bg-soft) 0%,
-    var(--bg) 60%
+    var(--bg) 58%
   );
   color: var(--ink);
   font-family: "Nunito Sans", system-ui, -apple-system, sans-serif;
   font-size: 16px;
-  line-height: 1.5;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Subtle paper grain over the whole canvas — the "analog" texture. A tiny
+   fractal-noise SVG, tiled and barely-there, so surfaces feel like real paper
+   instead of flat digital fills. Sits above the bg, below all content. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="160" height="160" filter="url(%23n)" opacity="0.5"/></svg>');
+  background-size: 160px 160px;
+}
+:root[data-theme="dark"] body::before {
+  mix-blend-mode: screen;
+  opacity: 0.06;
+}
+/* Keep the app above the grain layer. */
+.app {
+  position: relative;
+  z-index: 1;
 }
 
 button {
@@ -150,6 +217,114 @@ button {
   padding: 0 clamp(12px, 4vw, 20px);
 }
 
+/* Mobile-first: the rail/stage wrappers are transparent — their children flow
+   as direct flex items of .app, exactly as before. On wide screens (below)
+   they become a real two-pane "café counter + table" layout. */
+.rail,
+.stage {
+  display: contents;
+}
+.rail-decor {
+  display: none;
+}
+
+/* ---- Desktop / tablet landscape: sidebar + chat stage ----------------- */
+@media (min-width: 920px) {
+  .app {
+    max-width: 1180px;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    padding: 0;
+  }
+
+  /* Left "counter" — brand, progress, settings, a handwritten note. */
+  .rail {
+    display: flex;
+    flex-direction: column;
+    width: 332px;
+    flex: none;
+    height: 100dvh;
+    overflow-y: auto;
+    padding: 0 26px 24px;
+    border-right: 1.5px dashed var(--line-strong);
+    background: var(--bg-soft); /* fallback for browsers without color-mix */
+    background: color-mix(in srgb, var(--surface) 34%, transparent);
+  }
+  .rail .topbar {
+    background: none;
+    padding-top: calc(22px + var(--safe-t));
+  }
+  /* The sidebar has vertical room — let the tagline wrap instead of truncating. */
+  .rail .tagline {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.4;
+  }
+  /* Settings sits in the rail; keep it a single column at this width. */
+  .rail .settings {
+    grid-template-columns: 1fr;
+    box-shadow: none;
+    border: none;
+    background: none;
+    padding: 4px 0 0;
+    margin-bottom: 0;
+  }
+  .rail .streak-bar,
+  .rail .goal-bar {
+    align-self: stretch;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  /* Handwritten note pinned to the bottom of the rail. */
+  .rail-decor {
+    display: block;
+    margin-top: auto;
+    padding-top: 18px;
+  }
+  .rail-note {
+    font-family: "Caveat", cursive;
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.05;
+    color: var(--hand);
+    margin: 0;
+    transform: rotate(-3deg);
+    opacity: 0.9;
+  }
+
+  /* Right "table" — the conversation, kept to a comfy centered width. */
+  .stage {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    height: 100dvh;
+    padding: 0 clamp(20px, 4vw, 40px);
+  }
+  .stage > .chat,
+  .stage > .text-form {
+    width: 100%;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* The tray and transcript pill hug their content and stay centered. */
+  .stage > .controls,
+  .stage > .interim {
+    align-self: center;
+  }
+  .stage .msg {
+    max-width: 70%;
+  }
+  /* The chat needs its own top breathing room since the topbar is in the rail. */
+  .stage > .chat {
+    padding-top: calc(20px + var(--safe-t));
+  }
+}
+
 /* ---- Top bar ---------------------------------------------------------- */
 .topbar {
   position: sticky;
@@ -159,7 +334,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: calc(14px + var(--safe-t)) 2px 12px;
+  padding: calc(16px + var(--safe-t)) 2px 16px;
   background: linear-gradient(
     to bottom,
     var(--bg) 55%,
@@ -177,7 +352,18 @@ button {
 .leaf {
   font-size: 32px;
   line-height: 1;
-  filter: drop-shadow(0 2px 4px rgba(194, 84, 31, 0.25));
+  filter: drop-shadow(0 2px 4px rgba(192, 81, 28, 0.25));
+}
+/* Gentle wobble on the little leaf, like it's drifting down. */
+@media (prefers-reduced-motion: no-preference) {
+  .brand > .leaf:not(.logo-photo) {
+    display: inline-block;
+    animation: leaf-sway 5s ease-in-out infinite;
+  }
+}
+@keyframes leaf-sway {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(6deg); }
 }
 
 /* When a custom brand photo (logo.png) is present, render it as a round mark.
@@ -209,10 +395,11 @@ button {
 
 h1 {
   font-family: "Fraunces", Georgia, serif;
-  font-size: clamp(22px, 6vw, 27px);
+  font-size: clamp(23px, 6vw, 28px);
   font-weight: 600;
+  font-style: italic;
   margin: 0;
-  line-height: 1.05;
+  line-height: 1.02;
   color: var(--maple);
   letter-spacing: -0.01em;
 }
@@ -440,11 +627,12 @@ svg {
 .goal-bar {
   align-self: center;
   width: 100%;
-  max-width: 420px;
-  margin: 0 auto 8px;
+  max-width: 440px;
+  margin: 0 auto 14px;
+  padding: 2px 2px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 .goal-track {
   flex: 1;
@@ -547,8 +735,8 @@ svg {
   border-color: var(--user-line);
 }
 .drill-result.low {
-  background: #fdecea;
-  border-color: #f1c4bc;
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
 }
 .drill-score {
   font-family: "Fraunces", Georgia, serif;
@@ -587,7 +775,7 @@ svg {
 }
 .history-item {
   display: flex;
-  align-items: stretch;
+  align-items: center;
   gap: 8px;
 }
 .history-open {
@@ -620,11 +808,13 @@ svg {
 .history-del {
   flex: none;
   width: 44px;
-  border: 1px solid var(--line);
+  height: 44px;
+  border: 1.5px solid var(--line-strong);
   background: var(--surface);
-  border-radius: var(--radius-sm);
+  border-radius: 50%;
   color: var(--muted);
   cursor: pointer;
+  transition: background 0.12s var(--ease), color 0.12s var(--ease);
 }
 .history-del svg {
   width: 18px;
@@ -638,8 +828,8 @@ svg {
 }
 @media (hover: hover) {
   .history-del:hover {
-    background: #fdecea;
-    color: #9a3b29;
+    background: var(--danger-bg);
+    color: var(--danger-ink);
   }
   .history-dl:hover {
     background: var(--maple-soft);
@@ -650,15 +840,17 @@ svg {
 /* ---- Streak banner ---------------------------------------------------- */
 .streak-bar {
   align-self: center;
-  max-width: 100%;
+  width: 100%;
+  max-width: 440px;
   background: var(--warn-bg);
-  border: 1px solid var(--warn-line);
+  border: 1.5px solid var(--warn-line);
   color: var(--warn-ink);
-  border-radius: 999px;
-  padding: 7px 16px;
+  border-radius: var(--radius); /* rounded card, so 2-line text isn't cramped */
+  padding: 11px 18px;
   font-size: 13px;
   font-weight: 700;
-  margin: 0 auto 6px;
+  line-height: 1.45;
+  margin: 8px auto 14px;
   text-align: center;
   animation: rise 0.3s var(--ease);
 }
@@ -680,9 +872,9 @@ svg {
 .msg {
   position: relative;
   max-width: 88%; /* mobile-first; tightened to 80% on wider screens */
-  padding: 12px 16px;
+  padding: 13px 17px;
   border-radius: var(--radius);
-  line-height: 1.5;
+  line-height: 1.55;
   font-size: 16px;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -691,29 +883,45 @@ svg {
   animation: rise 0.25s var(--ease);
 }
 
+/* Maple speaks from a little cream "paper" card with a washi-tape tab on top. */
 .msg.maple {
   align-self: flex-start;
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-bottom-left-radius: 6px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: 18px 20px 19px 7px; /* hand-cut corners, soft tail bottom-left */
+  margin-top: 8px;
+}
+.msg.maple::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 18px;
+  width: 42px;
+  height: 14px;
+  background: var(--tape);
+  border: 1px dashed var(--tape-line);
+  border-radius: 3px;
+  transform: rotate(-3deg);
+  pointer-events: none;
 }
 
 .msg.user {
   align-self: flex-end;
   background: var(--user-soft);
-  border: 1px solid var(--user-line);
+  border: 1.5px solid var(--user-line);
   color: var(--user-ink);
-  border-bottom-right-radius: 6px;
+  border-radius: 20px 18px 7px 19px; /* tail bottom-right */
 }
 
 .msg .feedback {
-  margin: 10px -16px -12px;
-  padding: 10px 16px;
-  border-top: 1px dashed var(--line);
+  margin: 11px -17px -13px;
+  padding: 11px 17px;
+  border-top: 1.5px dashed var(--feedback-line);
   font-size: 14px;
+  line-height: 1.5;
   color: var(--feedback-ink);
   background: var(--feedback-bg);
-  border-radius: 0 0 var(--radius) 6px;
+  border-radius: 0 0 18px 7px;
 }
 
 .msg-actions {
@@ -773,34 +981,154 @@ svg {
   font-weight: 600;
 }
 
-/* ---- Welcome + starters ---------------------------------------------- */
+/* ---- Welcome (cozy café) --------------------------------------------- */
 .welcome {
   align-self: center;
   text-align: center;
   color: var(--muted);
-  max-width: 460px;
+  max-width: 480px;
   margin: auto 0;
-  padding: 24px 8px;
+  padding: 18px 8px 28px;
 }
-.welcome h2 {
+.welcome-hero {
+  color: var(--ink);
+  width: clamp(150px, 46vw, 196px);
+  margin: 0 auto 6px;
+}
+.welcome-hero .illus {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.illus .cream {
+  fill: var(--surface);
+}
+.illus .soft {
+  fill: var(--maple-soft);
+}
+.illus .accent {
+  stroke: var(--maple);
+}
+.illus .accent-fill {
+  fill: var(--maple);
+  stroke: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .welcome-hero .accent:nth-of-type(n + 5) {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: steam 3.4s ease-in-out infinite;
+  }
+}
+@keyframes steam {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* Handwritten kicker above the title */
+.welcome-kicker {
+  font-family: "Caveat", cursive;
+  font-size: clamp(22px, 6vw, 27px);
+  font-weight: 600;
+  color: var(--hand);
+  margin: 0 0 2px;
+  line-height: 1;
+  transform: rotate(-2deg);
+}
+.welcome-title {
   font-family: "Fraunces", Georgia, serif;
   color: var(--ink);
   font-weight: 600;
-  font-size: clamp(22px, 6vw, 28px);
-  margin: 0 0 10px;
+  font-size: clamp(28px, 8vw, 38px);
+  line-height: 1.06;
+  letter-spacing: -0.015em;
+  margin: 0 0 12px;
+  overflow-wrap: anywhere; /* never let a long partner name overflow */
 }
-.welcome p {
+/* Hand-drawn underline beneath the partner's name */
+.welcome-title .u {
+  position: relative;
+  white-space: nowrap;
+  padding: 0 2px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 14" fill="none" stroke="%23c0511c" stroke-width="3.4" stroke-linecap="round"><path d="M4 8 C28 3 46 11 64 6 S102 3 116 9"/></svg>')
+    no-repeat center bottom / 100% 0.42em;
+}
+.welcome-lead {
   margin: 0 auto;
-  max-width: 42ch;
+  max-width: 40ch;
+  font-size: 15px;
+  line-height: 1.6;
+}
+.welcome-pick {
+  font-family: "Caveat", cursive;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 20px 0 0;
 }
 
-.starters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 18px;
+/* Wide desktop only: lay the welcome out as a two-column hero (illustration
+   beside the text + cards). Below ~1080 the stage is too narrow for two columns,
+   so it stays single-column centered (handled by the base .welcome rules). */
+@media (min-width: 1080px) {
+  .stage .welcome {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 384px);
+    column-gap: 40px;
+    align-content: center;
+    justify-content: center;
+    text-align: left;
+    max-width: none;
+    width: 100%;
+    padding: 18px 8px;
+  }
+  .stage .welcome-hero {
+    grid-column: 1;
+    grid-row: 1 / span 5;
+    align-self: center;
+    width: 220px;
+    margin: 0;
+  }
+  .stage .welcome-kicker,
+  .stage .welcome-title,
+  .stage .welcome-lead,
+  .stage .welcome-pick,
+  .stage .welcome .starters {
+    grid-column: 2;
+    margin-left: 0;
+    margin-right: 0;
+  }
+  .stage .welcome-title {
+    font-size: clamp(34px, 3.4vw, 44px);
+  }
+  .stage .welcome-lead {
+    max-width: none;
+  }
+  .stage .welcome .starters {
+    max-width: none;
+    justify-self: stretch;
+  }
 }
+
+/* Short viewports (landscape phones): shrink the hero so the cards stay in view. */
+@media (max-height: 560px) {
+  .welcome {
+    margin: 8px 0;
+  }
+  .welcome-hero {
+    width: clamp(96px, 22vh, 130px);
+    margin-bottom: 2px;
+  }
+  .welcome-lead {
+    display: none;
+  }
+  .welcome-pick {
+    margin-top: 12px;
+  }
+}
+
+/* ---- Starter "sticky note" cards -------------------------------------- */
+/* Base .starter is a small pill (reused by the inline "Help me reply" box). */
 .starter {
   border: 1px solid var(--line);
   background: var(--surface);
@@ -823,6 +1151,94 @@ svg {
 }
 .starter:active {
   transform: scale(0.97);
+}
+.starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+/* On the welcome screen the starters become little sticky notes. */
+.welcome .starters {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+  width: 100%;
+  max-width: 440px;
+  margin: 14px auto 0;
+}
+.welcome .starter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 11px;
+  text-align: left;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 16px 19px 15px 18px; /* organic, hand-cut */
+  padding: 14px 14px 16px;
+  min-height: 104px;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.32;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease);
+}
+.welcome .starter:nth-child(2n + 1) {
+  transform: rotate(-1.4deg);
+}
+.welcome .starter:nth-child(2n) {
+  transform: rotate(1.4deg);
+}
+@media (hover: hover) {
+  .welcome .starter:hover {
+    transform: rotate(0) translateY(-3px);
+    box-shadow: var(--shadow);
+  }
+}
+.welcome .starter:active {
+  transform: rotate(0) scale(0.98);
+}
+/* Doodle badge (top-left of each note), tinted per card. */
+.starter-doodle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex: none;
+}
+.starter-doodle svg {
+  width: 19px;
+  height: 19px;
+}
+.welcome .starter:nth-child(4n + 1) .starter-doodle {
+  background: var(--sticker-mustard);
+  color: var(--sticker-mustard-ink);
+}
+.welcome .starter:nth-child(4n + 2) .starter-doodle {
+  background: var(--sticker-sage);
+  color: var(--sticker-sage-ink);
+}
+.welcome .starter:nth-child(4n + 3) .starter-doodle {
+  background: var(--sticker-berry);
+  color: var(--sticker-berry-ink);
+}
+.welcome .starter:nth-child(4n) .starter-doodle {
+  background: var(--sticker-sky);
+  color: var(--sticker-sky-ink);
+}
+.starter-text {
+  display: block;
+}
+/* Dark mode: re-ink the hand-drawn underline so it reads on the dark paper. */
+:root[data-theme="dark"] .welcome-title .u {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 14" fill="none" stroke="%23e8843f" stroke-width="3.4" stroke-linecap="round"><path d="M4 8 C28 3 46 11 64 6 S102 3 116 9"/></svg>');
 }
 
 /* ---- Typing indicator ------------------------------------------------- */
@@ -874,12 +1290,22 @@ svg {
 /* ---- Bottom control dock --------------------------------------------- */
 /* Mobile-first: the mic is the hero and flexes to fill the row; the small
    icon buttons stay a fixed size. Everything fits one row on a narrow phone. */
+/* A cozy floating "tray" that holds the controls, like a little wooden board. */
 .controls {
+  align-self: center;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 10px 0 calc(16px + var(--safe-b));
+  margin: 4px auto calc(12px + var(--safe-b));
+  padding: 9px 14px;
+  background: var(--surface); /* fallback for browsers without color-mix */
+  background: color-mix(in srgb, var(--surface) 86%, transparent);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
 }
 
 .mic {
@@ -887,14 +1313,14 @@ svg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  border: 2.5px solid var(--surface);
   background: var(--maple);
   color: var(--on-maple);
-  width: 64px;
-  height: 64px;
+  width: 62px;
+  height: 62px;
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: var(--shadow-maple);
+  box-shadow: var(--shadow-maple), 0 0 0 2px var(--maple);
   transition: transform 0.12s var(--ease), box-shadow 0.12s var(--ease),
     background 0.12s var(--ease);
 }
@@ -1015,8 +1441,8 @@ svg {
 .text-form button {
   flex: none;
   border: none;
-  background: var(--user);
-  color: #fff;
+  background: var(--maple);
+  color: var(--on-maple);
   font: inherit;
   font-weight: 700;
   padding: 0 22px;
@@ -1085,8 +1511,8 @@ svg {
 .setup-card,
 .modal-card {
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 28px 30px 27px 31px; /* gently hand-cut */
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 460px;
@@ -1108,10 +1534,22 @@ svg {
 .modal-card h2 {
   font-family: "Fraunces", Georgia, serif;
   font-weight: 600;
-  font-size: clamp(21px, 5.5vw, 25px);
+  font-size: clamp(22px, 5.8vw, 26px);
   margin: 0 0 14px;
   color: var(--ink);
   letter-spacing: -0.01em;
+  line-height: 1.12;
+}
+
+/* Handwritten kicker (setup card and elsewhere) */
+.hand-kicker {
+  font-family: "Caveat", cursive;
+  font-size: 23px;
+  font-weight: 600;
+  color: var(--hand);
+  margin: 0 0 2px;
+  line-height: 1;
+  transform: rotate(-2deg);
 }
 
 .setup-sub {
@@ -1201,20 +1639,15 @@ svg {
 }
 
 .setup-error {
-  background: #fdecea;
-  border: 1px solid #f1c4bc;
-  color: #9a3b29;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-line);
+  color: var(--danger-ink);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
   font-size: 14px;
   line-height: 1.55;
   margin-top: 16px;
   text-align: left;
-}
-:root[data-theme="dark"] .setup-error {
-  background: #3a211c;
-  border-color: #6b362c;
-  color: #f0b3a6;
 }
 .setup-error p {
   margin: 0;
@@ -1228,15 +1661,15 @@ svg {
   position: absolute;
   top: 14px;
   right: 14px;
-  border: none;
+  border: 1.5px solid var(--line);
   background: var(--surface-2);
-  border-radius: 10px;
-  width: 34px;
-  height: 34px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
   font-size: 15px;
   cursor: pointer;
   color: var(--muted);
-  transition: background 0.12s var(--ease);
+  transition: background 0.12s var(--ease), color 0.12s var(--ease);
 }
 @media (hover: hover) {
   .modal-close:hover {

@@ -37,13 +37,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Nunito+Sans:wght@400;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Nunito+Sans:wght@400;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="app">
+      <div class="rail">
       <header class="topbar">
         <div class="brand">
           <span class="leaf">🍁</span>
@@ -178,6 +179,14 @@
         <span id="goalText" class="goal-text"></span>
       </div>
 
+      <!-- Sidebar footer note (desktop only) -->
+      <div class="rail-decor" aria-hidden="true">
+        <p class="rail-note">Speak a little<br />every day ☕</p>
+      </div>
+      </div>
+      <!-- /rail -->
+
+      <div class="stage">
       <main id="chat" class="chat" aria-live="polite"></main>
 
       <button id="scrollBtn" class="scroll-fab" aria-label="Scroll to latest" hidden>
@@ -221,10 +230,13 @@
           id="textInput"
           type="text"
           autocomplete="off"
+          aria-label="Type your message to Maple"
           placeholder="Type your message to Maple…"
         />
         <button type="submit">Send</button>
       </form>
+      </div>
+      <!-- /stage -->
     </div>
 
     <!-- End-of-session review -->
@@ -279,6 +291,7 @@
     <div id="setup" class="setup-overlay">
       <div class="setup-card">
         <span class="leaf big">🍁</span>
+        <p class="hand-kicker">welcome in ☕</p>
         <h2>Maple runs free, right on your device</h2>
         <p class="setup-sub">
           Maple's AI runs entirely inside your browser — <strong>no account,
