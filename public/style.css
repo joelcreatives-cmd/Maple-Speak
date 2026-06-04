@@ -56,8 +56,11 @@
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Dark palette. A tiny inline script in <head> resolves the user's choice
+   (System / Light / Dark) to data-theme="light" | "dark" before first paint,
+   so this single attribute selector drives dark mode — no media-query
+   duplication and no flash of the wrong theme. */
+:root[data-theme="dark"] {
     --bg: #1c1a17;
     --bg-soft: #232019;
     --surface: #2a261f;
@@ -93,7 +96,6 @@
     --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 18px 50px rgba(0, 0, 0, 0.55);
     --shadow-maple: 0 8px 22px rgba(232, 118, 58, 0.3);
-  }
 }
 
 * {
@@ -639,6 +641,10 @@ svg {
     background: #fdecea;
     color: #9a3b29;
   }
+  .history-dl:hover {
+    background: var(--maple-soft);
+    color: var(--maple);
+  }
 }
 
 /* ---- Streak banner ---------------------------------------------------- */
@@ -1026,6 +1032,12 @@ svg {
 .text-form button:active {
   transform: scale(0.97);
 }
+.text-form button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
 
 /* ---- Unsupported notice ---------------------------------------------- */
 .unsupported {
@@ -1199,12 +1211,10 @@ svg {
   margin-top: 16px;
   text-align: left;
 }
-@media (prefers-color-scheme: dark) {
-  .setup-error {
-    background: #3a211c;
-    border-color: #6b362c;
-    color: #f0b3a6;
-  }
+:root[data-theme="dark"] .setup-error {
+  background: #3a211c;
+  border-color: #6b362c;
+  color: #f0b3a6;
 }
 .setup-error p {
   margin: 0;
