@@ -16,6 +16,7 @@ const settingsEl = $("settings");
 const textToggle = $("textToggle");
 const textForm = $("textForm");
 const textInput = $("textInput");
+const sendBtn = textForm.querySelector("button[type='submit']");
 const voiceSelect = $("voiceSelect");
 const rateSlider = $("rate");
 const rateVal = $("rateVal");
@@ -34,6 +35,7 @@ const taglineEl = $("tagline");
 const modelSwitch = $("modelSwitch");
 const drillBtn = $("drillBtn");
 const historyBtn = $("historyBtn");
+const themeSelect = $("theme");
 
 // Review modal
 const reviewOverlay = $("reviewOverlay");
@@ -106,6 +108,14 @@ let messages = []; // { role: 'user' | 'assistant', content }
 let listening = false;
 let busy = false;
 let voices = [];
+
+// Single place to flip the "Maple is replying" state so the mic, send button,
+// and busy flag never drift out of sync.
+function setBusy(v) {
+  busy = v;
+  micBtn.classList.toggle("thinking", v);
+  if (sendBtn) sendBtn.disabled = v;
+}
 
 // Hands-free auto mode: once on, the app loops listen → talk → reply → listen
 // with no taps. Browsers require the FIRST mic start to come from a tap, so
@@ -200,6 +210,49 @@ function updateRateLabel() {
 let pendingVoiceURI = null;
 let pendingModelId = null;
 
+// ---- Theme (System / Light / Dark) -----------------------------------------
+// The <head> inline script sets the initial data-theme before paint; this keeps
+// it in sync with the user's choice and follows the OS when set to "System".
+
+const THEME_KEY = "maple-speak-theme";
+const darkQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+
+function resolveTheme(pref) {
+  if (pref === "dark" || pref === "light") return pref;
+  return darkQuery?.matches ? "dark" : "light";
+}
+
+function applyTheme(pref) {
+  const resolved = resolveTheme(pref);
+  document.documentElement.setAttribute("data-theme", resolved);
+  // Keep the browser UI chrome (address bar / status bar) matched to the theme.
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute("content", resolved === "dark" ? "#1c1a17" : "#c2541f");
+}
+
+function initTheme() {
+  let pref = "system";
+  try {
+    pref = localStorage.getItem(THEME_KEY) || "system";
+  } catch {
+    /* ignore */
+  }
+  if (themeSelect) themeSelect.value = pref;
+  applyTheme(pref);
+  themeSelect?.addEventListener("change", () => {
+    try {
+      localStorage.setItem(THEME_KEY, themeSelect.value);
+    } catch {
+      /* ignore */
+    }
+    applyTheme(themeSelect.value);
+  });
+  // Follow the OS live while on "System".
+  darkQuery?.addEventListener?.("change", () => {
+    if ((themeSelect?.value || "system") === "system") applyTheme("system");
+  });
+}
+
 // ---- Conversation persistence (resume after refresh) -----------------------
 
 const SESSION_KEY = "maple-speak-session";
@@ -241,8 +294,7 @@ function restoreSession() {
 
 function clearSession() {
   generation++; // invalidate any in-flight reply so it can't repopulate state
-  busy = false;
-  micBtn.classList.remove("thinking");
+  setBusy(false);
   messages = [];
   trickyWords = new Map();
   localStorage.removeItem(SESSION_KEY);
@@ -502,6 +554,7 @@ function splitReply(text) {
 
 function speak(text, onEnd) {
   if (!synth || !controls.autoSpeak.checked || !text) {
+    stopBtn.hidden = true;
     onEnd?.();
     return;
   }
@@ -532,6 +585,24 @@ function stopSpeaking() {
   synth?.cancel();
   stopBtn.hidden = true;
   micBtn.classList.remove("speaking");
+}
+
+// Cancel an in-flight model reply (the "thinking" phase). Invalidates the
+// generation so the abandoned stream can't mutate state, asks WebLLM to stop
+// generating, and removes the half-finished bubble.
+function cancelGeneration() {
+  if (!busy) return;
+  generation++; // any in-flight stream now sees myGen !== generation and bails
+  try {
+    engine?.interruptGenerate?.();
+  } catch {
+    /* ignore */
+  }
+  setBusy(false);
+  stopBtn.hidden = true;
+  // Remove the unfinished Maple bubble (it has no actions row yet).
+  const last = chatEl.querySelector(".msg.maple:last-child");
+  if (last && !last.querySelector(".msg-actions")) last.remove();
 }
 
 // ---- Rendering -------------------------------------------------------------
@@ -647,6 +718,8 @@ function renderMapleMessage(el, fullText) {
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>',
     chat:
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.7-.7L3 21l1.3-3.9A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/></svg>',
+    copy:
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
   };
   const mkAction = (icon, label, fn) => {
     const b = document.createElement("button");
@@ -659,14 +732,43 @@ function renderMapleMessage(el, fullText) {
   actions.appendChild(mkAction("speaker", "Hear again", () => speak(spoken || fullText)));
   actions.appendChild(mkAction("bulb", "Explain simply", () => explainMessage(spoken || fullText, el)));
   actions.appendChild(mkAction("chat", "Help me reply", () => suggestReplies(spoken || fullText, el)));
+  actions.appendChild(mkAction("copy", "Copy", () => copyText(spoken || fullText)));
 
   el.appendChild(actions);
   maybeAutoScroll();
 }
 
+// Copy text to the clipboard with a graceful fallback for older browsers.
+async function copyText(text) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    toast("Copied to clipboard");
+  } catch {
+    // Fallback: a temporary textarea + execCommand for non-secure contexts.
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      toast("Copied to clipboard");
+    } catch {
+      toast("Couldn't copy — please select and copy manually.");
+    }
+  }
+}
+
 // Suggest a few short things the learner could say next — a big help when stuck.
 async function suggestReplies(mapleText, msgEl) {
-  if (!engine || busy) return;
+  if (!engine) return;
+  if (busy) {
+    toast("One moment — let Maple finish first.");
+    return;
+  }
   if (msgEl.querySelector(".ideas-box")) {
     msgEl.querySelector(".ideas-box").scrollIntoView({ block: "nearest" });
     return;
@@ -718,7 +820,11 @@ async function suggestReplies(mapleText, msgEl) {
 
 // Ask the model to restate its message in very simple English, shown inline.
 async function explainMessage(text, msgEl) {
-  if (!engine || busy) return;
+  if (!engine) return;
+  if (busy) {
+    toast("One moment — let Maple finish first.");
+    return;
+  }
   // Avoid duplicate panels.
   if (msgEl.querySelector(".explain-box")) {
     msgEl.querySelector(".explain-box").scrollIntoView({ block: "nearest" });
@@ -754,8 +860,8 @@ async function explainMessage(text, msgEl) {
 async function sendToMaple() {
   if (!engine) return;
   const myGen = generation; // snapshot — invalidated if the session is reset
-  busy = true;
-  micBtn.classList.add("thinking");
+  setBusy(true);
+  stopBtn.hidden = false; // allow cancelling a slow reply while it's thinking
   const typingEl = addTyping();
 
   const chatMessages = [
@@ -818,22 +924,20 @@ async function sendToMaple() {
         "Sorry, I had trouble responding just now. Please try again.";
     }
   } finally {
-    if (myGen === generation) {
-      busy = false;
-      micBtn.classList.remove("thinking");
-    }
+    if (myGen === generation) setBusy(false);
   }
 }
 
 function handleUserUtterance(text) {
   const clean = text.trim();
-  if (!clean || busy) return;
+  if (!clean || busy) return false;
   addMessage("user", clean);
   messages.push({ role: "user", content: clean });
   saveSession();
   markPracticedToday();
   bumpDailyGoal();
   sendToMaple();
+  return true;
 }
 
 // ---- Daily goal ------------------------------------------------------------
@@ -937,10 +1041,12 @@ function setupRecognition() {
     if (e.error === "no-speech") {
       interimEl.textContent = "I didn't catch that…";
     } else if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-      // Mic permission denied — auto mode can't continue.
+      // Mic permission denied — auto mode can't continue. Use a toast because
+      // onend hides the interim line immediately, so an inline note wouldn't be
+      // seen. Offer typing as a fallback.
       autoMode = false;
       reflectAutoMode();
-      interimEl.textContent = "Microphone access is blocked. Enable it to speak.";
+      toast("Microphone is blocked. Enable mic access, or tap the keyboard to type.");
     }
   };
 
@@ -1263,9 +1369,20 @@ function openHistory() {
       info.querySelector(".history-meta").textContent =
         `${entry.messages.filter((m) => m.role === "user").length} turns · ${timeAgo(entry.when)}`;
       info.onclick = () => loadHistory(entry.id);
+      const dl = document.createElement("button");
+      dl.className = "history-del history-dl";
+      dl.setAttribute("aria-label", "Download transcript");
+      dl.title = "Download transcript";
+      dl.innerHTML =
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>';
+      dl.onclick = (e) => {
+        e.stopPropagation();
+        exportConversation(entry);
+      };
       const del = document.createElement("button");
       del.className = "history-del";
       del.setAttribute("aria-label", "Delete");
+      del.title = "Delete";
       del.innerHTML =
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>';
       del.onclick = (e) => {
@@ -1273,6 +1390,7 @@ function openHistory() {
         deleteHistory(entry.id);
       };
       row.appendChild(info);
+      row.appendChild(dl);
       row.appendChild(del);
       historyList.appendChild(row);
     }
@@ -1286,8 +1404,7 @@ function loadHistory(id) {
   // Save whatever's open now, then load the chosen one.
   archiveCurrent();
   generation++;
-  busy = false;
-  micBtn.classList.remove("thinking");
+  setBusy(false);
   messages = entry.messages.slice();
   trickyWords = new Map(entry.tricky || []);
   if (entry.scenario !== undefined) {
@@ -1297,6 +1414,37 @@ function loadHistory(id) {
   saveSession();
   renderRestored();
   historyOverlay.hidden = true;
+}
+
+// Build a plain-text transcript of a saved conversation and download it.
+function exportConversation(entry) {
+  const name = partnerName();
+  const lines = (entry.messages || []).map((m) => {
+    const who = m.role === "user" ? "You" : name;
+    // Strip the feedback tag / scenario marker from saved Maple text.
+    const text = splitReply(m.content).spoken || m.content;
+    return `${who}: ${text}`;
+  });
+  const header = `Maple Speak — practice conversation\n${new Date(
+    entry.when || Date.now(),
+  ).toLocaleString()}\n${"-".repeat(40)}\n\n`;
+  const blob = new Blob([header + lines.join("\n\n") + "\n"], {
+    type: "text/plain;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const slug =
+    (entry.title || "conversation")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 32) || "conversation";
+  a.download = `maple-speak-${slug}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function deleteHistory(id) {
@@ -1412,6 +1560,7 @@ function drillListen() {
   drillRec.onend = () => {
     drillSpeak.textContent = "Tap & say it";
     drillSpeak.disabled = false;
+    if (drillOverlay.hidden) return; // drill was closed mid-listen — ignore
     showDrillResult(heard.trim());
   };
   try {
@@ -1493,6 +1642,8 @@ async function switchModel() {
     toast("Model switched ✓");
   } catch (err) {
     console.error("Model switch failed:", err);
+    // The old model is still loaded — keep the dropdown pointing at it.
+    if (loadedModelId) modelSwitch.value = loadedModelId;
     setupProgress.hidden = true;
     setupReady.hidden = false;
     setupError.hidden = false;
@@ -1527,10 +1678,12 @@ micBtn.addEventListener("click", () => {
 
 autoBtn.addEventListener("click", toggleAutoMode);
 
-// Stop Maple speaking. If interrupted by hand, don't auto-re-listen.
+// Stop button: cancel a slow reply while thinking, or stop Maple mid-sentence.
+// Either way, don't auto-re-listen afterwards.
 stopBtn.addEventListener("click", () => {
-  stopSpeaking();
   clearTimeout(autoRestartTimer);
+  if (busy) cancelGeneration();
+  else stopSpeaking();
 });
 
 // Scroll-to-latest button appears when the user scrolls up.
@@ -1600,6 +1753,61 @@ settingsToggle.addEventListener("click", () => {
   settingsEl.hidden = !settingsEl.hidden;
 });
 
+// Escape closes whichever modal/panel is open (but not the mandatory setup).
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!reviewOverlay.hidden) closeReview();
+  else if (!drillOverlay.hidden) closeDrill();
+  else if (!historyOverlay.hidden) historyOverlay.hidden = true;
+  else if (!settingsEl.hidden) settingsEl.hidden = true;
+});
+
+// ---- Modal focus management + focus trap (accessibility) -------------------
+const MODAL_OVERLAYS = [reviewOverlay, drillOverlay, historyOverlay];
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function visibleModalCard() {
+  const overlay = MODAL_OVERLAYS.find((m) => !m.hidden);
+  return overlay ? overlay.querySelector(".modal-card") : null;
+}
+
+// When a modal opens, remember focus and move it inside; when it closes, restore.
+for (const overlay of MODAL_OVERLAYS) {
+  new MutationObserver(() => {
+    if (!overlay.hidden) {
+      overlay._restoreFocus = document.activeElement;
+      const card = overlay.querySelector(".modal-card");
+      const first = card?.querySelector(FOCUSABLE);
+      // Defer so the element is laid out and focusable.
+      requestAnimationFrame(() => (first || card)?.focus?.());
+    } else if (overlay._restoreFocus) {
+      overlay._restoreFocus.focus?.();
+      overlay._restoreFocus = null;
+    }
+  }).observe(overlay, { attributes: true, attributeFilter: ["hidden"] });
+}
+
+// Trap Tab within the open modal so keyboard focus can't escape behind it.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Tab") return;
+  const card = visibleModalCard();
+  if (!card) return;
+  const items = [...card.querySelectorAll(FOCUSABLE)].filter(
+    (el) => el.offsetParent !== null || el === document.activeElement,
+  );
+  if (!items.length) return;
+  const first = items[0];
+  const last = items[items.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+});
+
 for (const el of Object.values(controls)) {
   el.addEventListener("change", saveSettings);
 }
@@ -1624,9 +1832,13 @@ function toggleTextForm(show) {
 textToggle.addEventListener("click", () => toggleTextForm());
 textForm.addEventListener("submit", (e) => {
   e.preventDefault();
+  if (busy) {
+    // Maple is still replying — keep what they typed instead of dropping it.
+    toast("One moment — Maple is still replying…");
+    return;
+  }
   const text = textInput.value;
-  textInput.value = "";
-  handleUserUtterance(text);
+  if (handleUserUtterance(text)) textInput.value = "";
 });
 
 // ---- Init ------------------------------------------------------------------
@@ -1662,6 +1874,11 @@ function applyCustomLogo() {
 
 async function init() {
   loadSettings();
+  initTheme();
+  // Voices may have been enumerated before loadSettings() knew the saved
+  // preference (and onvoiceschanged won't always fire again on browsers that
+  // return them synchronously). Re-apply now so the saved voice sticks.
+  populateVoices();
   applyCustomLogo();
   setupRecognition();
 
@@ -1672,7 +1889,40 @@ async function init() {
     return;
   }
   populateModelSelect();
+  // Focus the primary action so Enter starts the download right away.
+  requestAnimationFrame(() => loadBtn.focus());
 }
+
+// ---- PWA install prompt ----------------------------------------------------
+// Chrome/Edge fire `beforeinstallprompt` when the app is installable. We stash
+// it and reveal an "Install app" button in settings; tapping it shows the
+// native prompt. The button hides again once installed or used.
+let deferredInstallPrompt = null;
+const installBtn = $("installBtn");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (installBtn) installBtn.hidden = false;
+});
+
+installBtn?.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  try {
+    await deferredInstallPrompt.userChoice;
+  } catch {
+    /* ignore */
+  }
+  deferredInstallPrompt = null;
+  installBtn.hidden = true;
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  if (installBtn) installBtn.hidden = true;
+  toast("Maple Speak installed 🍁");
+});
 
 // Register the service worker so the app shell loads offline. Best-effort —
 // failures (e.g. on file://) are harmless and ignored.
