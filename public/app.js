@@ -619,34 +619,83 @@ function clearWelcome() {
   chatEl.querySelector(".welcome")?.remove();
 }
 
+// Minimal HTML escaping for the few spots we build markup with a user value.
+function escapeHtml(s) {
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
+  );
+}
+
+// ---- Hand-drawn illustrations (inline SVG, theme-aware via currentColor) ----
+// A cozy steaming mug with latte-art maple leaf, drifting leaves and sparkles —
+// the welcome "hero". Strokes use currentColor (ink); .accent = maple.
+const ILLUS_MUG = `
+<svg class="illus illus--mug" viewBox="0 0 240 184" fill="none" stroke="currentColor"
+     stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <ellipse class="cream" cx="120" cy="152" rx="66" ry="11"/>
+  <path class="cream" d="M80 80 C80 121 87 141 120 141 C153 141 160 121 160 80 Z"/>
+  <ellipse class="soft" cx="120" cy="80" rx="40" ry="10"/>
+  <path d="M160 92 C185 87 187 123 161 127"/>
+  <g class="accent" transform="translate(120 80) scale(0.62)">
+    <path d="M0 -10 L3 -3 L10 -5 L5 2 L9 9 L0 5 L-9 9 L-5 2 L-10 -5 L-3 -3 Z"/>
+    <path d="M0 5 L0 12"/>
+  </g>
+  <path class="accent" d="M104 62 C98 53 110 49 104 39 C100 33 108 29 104 23"/>
+  <path class="accent" d="M124 62 C118 52 130 48 124 38 C120 32 128 28 124 22"/>
+  <path class="accent" d="M138 60 C133 53 143 49 138 41"/>
+  <g class="accent" transform="translate(64 150) rotate(-20) scale(0.85)">
+    <path d="M0 -10 L3 -3 L10 -5 L5 2 L9 9 L0 5 L-9 9 L-5 2 L-10 -5 L-3 -3 Z"/>
+    <path d="M0 5 L0 12"/>
+  </g>
+  <g class="accent-fill" transform="translate(196 58)">
+    <path d="M0 -8 C1 -2 2 -1 8 0 C2 1 1 2 0 8 C-1 2 -2 1 -8 0 C-2 -1 -1 -2 0 -8 Z"/>
+  </g>
+  <g class="accent-fill" transform="translate(40 96) scale(0.7)">
+    <path d="M0 -8 C1 -2 2 -1 8 0 C2 1 1 2 0 8 C-1 2 -2 1 -8 0 C-2 -1 -1 -2 0 -8 Z"/>
+  </g>
+</svg>`;
+
+// Tiny doodles for the corner of each starter "sticker".
+const STARTER_DOODLES = [
+  // chat
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v10H9l-4 4z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg>`,
+  // leaf
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 6-14 14-14 0 8-6 14-14 14z"/><path d="M5 19 16 8"/></svg>`,
+  // sun
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M6 6l1.4 1.4M16.6 16.6 18 18M18 6l-1.4 1.4M7.4 16.6 6 18"/></svg>`,
+  // heart
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20S4 14 4 9a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 5-8 11-8 11z"/></svg>`,
+];
+
 function showWelcome() {
-  const name = partnerName();
+  const name = escapeHtml(partnerName());
   const welcome = document.createElement("div");
   welcome.className = "welcome";
-  const h2 = document.createElement("h2");
-  h2.textContent = `Hi, I'm ${name} 🍁`;
-  const p1 = document.createElement("p");
-  p1.textContent =
-    "Tap the microphone and just start talking — about your day, your plans, anything. I'll chat back and gently help your English along the way.";
-  const p2 = document.createElement("p");
-  p2.style.cssText = "margin-top:14px;font-size:13px";
-  p2.textContent = "Not sure what to say? Pick one:";
-  const wrap = document.createElement("div");
-  wrap.className = "starters";
-  wrap.id = "starters";
-  welcome.append(h2, p1, p2, wrap);
+  welcome.innerHTML = `
+    <div class="welcome-hero">${ILLUS_MUG}</div>
+    <p class="welcome-kicker">Pull up a chair</p>
+    <h2 class="welcome-title">Hi, I'm <span class="u">${name}</span> 🍁</h2>
+    <p class="welcome-lead">Tap the microphone and just start talking — about your day,
+      your plans, anything. I'll chat back and gently help your English along the way.</p>
+    <p class="welcome-pick">Not sure where to start? Pick a card:</p>
+    <div class="starters" id="starters"></div>`;
   chatEl.innerHTML = "";
   chatEl.appendChild(welcome);
 
-  // Show three random conversation starters.
-  const pool = [...STARTERS].sort(() => Math.random() - 0.5).slice(0, 3);
-  for (const text of pool) {
+  // Four random conversation starters as little sticker cards.
+  const wrap = welcome.querySelector("#starters");
+  const pool = [...STARTERS].sort(() => Math.random() - 0.5).slice(0, 4);
+  pool.forEach((text, i) => {
     const btn = document.createElement("button");
     btn.className = "starter";
-    btn.textContent = text;
+    btn.innerHTML =
+      `<span class="starter-doodle" aria-hidden="true">${STARTER_DOODLES[i % STARTER_DOODLES.length]}</span>` +
+      `<span class="starter-text">${escapeHtml(text)}</span>`;
     btn.onclick = () => handleUserUtterance(text);
     wrap.appendChild(btn);
-  }
+  });
 }
 
 // Re-render a conversation restored from a previous session.
@@ -1589,7 +1638,7 @@ function showDrillResult(heard) {
   drillResult.innerHTML = `
     <div class="drill-score">${score}<span>%</span></div>
     <div class="drill-verdict">${verdict}</div>
-    ${heard ? `<div class="drill-heard">I heard: “${heard}”</div>` : ""}`;
+    ${heard ? `<div class="drill-heard">I heard: “${escapeHtml(heard)}”</div>` : ""}`;
   drillResult.hidden = false;
   drillNext.hidden = false;
 }
