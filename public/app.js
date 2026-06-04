@@ -828,6 +828,9 @@ async function suggestReplies(mapleText, msgEl) {
   msgEl.appendChild(box);
   maybeAutoScroll();
 
+  // Hold the engine lock so the main reply flow can't start a second,
+  // overlapping generation while these suggestions are being produced.
+  setBusy(true);
   try {
     const res = await engine.chat.completions.create({
       messages: [
@@ -864,6 +867,8 @@ async function suggestReplies(mapleText, msgEl) {
     maybeAutoScroll();
   } catch {
     box.textContent = "Sorry, I couldn't think of ideas just now. Please try again.";
+  } finally {
+    setBusy(false);
   }
 }
 
@@ -885,6 +890,8 @@ async function explainMessage(text, msgEl) {
   msgEl.appendChild(box);
   chatEl.scrollTop = chatEl.scrollHeight;
 
+  // Hold the engine lock so the main reply flow can't overlap this call.
+  setBusy(true);
   try {
     const res = await engine.chat.completions.create({
       messages: [
@@ -900,6 +907,8 @@ async function explainMessage(text, msgEl) {
     box.textContent = "💡 " + (simple || "Sorry, I couldn't simplify that one.");
   } catch {
     box.textContent = "💡 Sorry, I couldn't simplify that one. Please try again.";
+  } finally {
+    setBusy(false);
   }
   chatEl.scrollTop = chatEl.scrollHeight;
 }
@@ -1267,14 +1276,18 @@ async function openReview() {
     chip.onclick = () => speakWord(chip.textContent);
   });
 
-  // Generate the coaching note with the in-browser model.
+  // Generate the coaching note with the in-browser model. Hold the engine
+  // lock so a mic tap behind the modal can't start an overlapping generation.
   const coachEl = $("coachNote");
+  setBusy(true);
   try {
     const note = await generateCoachNote();
     coachEl.textContent = note;
   } catch {
     coachEl.textContent =
       "Great work practicing today! Keep having conversations like this — every chat makes your English more natural.";
+  } finally {
+    setBusy(false);
   }
 }
 
